@@ -7,19 +7,11 @@ namespace AccordionQ2.WebApiClient.Tests;
 [TestCategory("Integration")]
 public class ResourcesTests
 {
-    private static AccordionQ2Client _client = null!;
-
-    [ClassInitialize]
-    public static void ClassInit(TestContext _) =>
-        _client = new AccordionQ2Client(TestConfig.BaseUrl);
-
-    [ClassCleanup]
-    public static void ClassCleanup() => _client?.Dispose();
 
     [TestMethod]
     public async Task GetNames_ReturnsNonEmptyArray()
     {
-        var names = await _client.Resources.GetNamesAsync();
+        var names = await TestSetup.Client.Resources.GetNamesAsync();
 
         Console.WriteLine($"Resource names count: {names?.Length}");
         foreach (var n in names!)
@@ -32,7 +24,7 @@ public class ResourcesTests
     [TestMethod]
     public async Task GetNames_ContainsKnownResources()
     {
-        var names = await _client.Resources.GetNamesAsync();
+        var names = await TestSetup.Client.Resources.GetNamesAsync();
 
         Console.WriteLine($"Looking for: {TestConfig.CpuTempResource}, {TestConfig.Mon3V3Resource}, {TestConfig.UptimeResource}");
         Console.WriteLine($"Found CpuTemp: {names.Contains(TestConfig.CpuTempResource)}");
@@ -47,7 +39,7 @@ public class ResourcesTests
     [TestMethod]
     public async Task GetValue_CpuTemp_ReturnsNumericValue()
     {
-        var value = await _client.Resources.GetValueAsync(TestConfig.CpuTempResource);
+        var value = await TestSetup.Client.Resources.GetValueAsync(TestConfig.CpuTempResource);
 
         Console.WriteLine($"CpuTemp raw value: '{value}'");
 
@@ -62,7 +54,7 @@ public class ResourcesTests
     [TestMethod]
     public async Task GetValue_Mon3V3_ReturnsVoltageInRange()
     {
-        var value = await _client.Resources.GetValueAsync(TestConfig.Mon3V3Resource);
+        var value = await TestSetup.Client.Resources.GetValueAsync(TestConfig.Mon3V3Resource);
 
         Console.WriteLine($"Mon3V3 raw value: '{value}'");
 
@@ -78,7 +70,7 @@ public class ResourcesTests
     [TestMethod]
     public async Task GetValue_Uptime_ReturnsNonEmpty()
     {
-        var value = await _client.Resources.GetValueAsync(TestConfig.UptimeResource);
+        var value = await TestSetup.Client.Resources.GetValueAsync(TestConfig.UptimeResource);
 
         Console.WriteLine($"Uptime: '{value}'");
 
@@ -90,7 +82,7 @@ public class ResourcesTests
     public async Task GetValues_MultipleResources_ReturnsDictionary()
     {
         var names = new[] { TestConfig.CpuTempResource, TestConfig.Mon3V3Resource, TestConfig.UptimeResource };
-        var values = await _client.Resources.GetValuesAsync(names);
+        var values = await TestSetup.Client.Resources.GetValuesAsync(names);
 
         Assert.IsNotNull(values);
         Console.WriteLine($"GetValues returned {values.Count} entries:");

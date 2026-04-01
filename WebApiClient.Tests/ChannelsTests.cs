@@ -7,19 +7,11 @@ namespace AccordionQ2.WebApiClient.Tests;
 [TestCategory("Integration")]
 public class ChannelsTests
 {
-    private static AccordionQ2Client _client = null!;
-
-    [ClassInitialize]
-    public static void ClassInit(TestContext _) =>
-        _client = new AccordionQ2Client(TestConfig.BaseUrl);
-
-    [ClassCleanup]
-    public static void ClassCleanup() => _client?.Dispose();
 
     [TestMethod]
     public async Task GetAll_ReturnsNonEmptyList()
     {
-        var channels = await _client.Channels.GetAllAsync();
+        var channels = await TestSetup.Client.Channels.GetAllAsync();
 
         Console.WriteLine($"Channels count: {channels?.Count}");
         foreach (var ch in channels!)
@@ -32,7 +24,7 @@ public class ChannelsTests
     [TestMethod]
     public async Task GetAll_ChannelsHaveAliases()
     {
-        var channels = await _client.Channels.GetAllAsync();
+        var channels = await TestSetup.Client.Channels.GetAllAsync();
 
         foreach (var ch in channels)
         {
@@ -44,7 +36,7 @@ public class ChannelsTests
     [TestMethod]
     public async Task GetChannel_ByAlias_AnalogChannel_ReturnsCorrectType()
     {
-        var ch = await _client.Channels.GetChannelAsync(alias: TestConfig.AnalogChannelAlias);
+        var ch = await TestSetup.Client.Channels.GetChannelAsync(alias: TestConfig.AnalogChannelAlias);
 
         Console.WriteLine($"Analog channel: Alias={ch?.Alias} | Type={ch?.ChannelType} | Unit={ch?.Unit}");
 
@@ -58,7 +50,7 @@ public class ChannelsTests
     [TestMethod]
     public async Task GetChannel_ByAlias_AdcChannel_ReturnsCorrectType()
     {
-        var ch = await _client.Channels.GetChannelAsync(alias: TestConfig.AdcChannelAlias);
+        var ch = await TestSetup.Client.Channels.GetChannelAsync(alias: TestConfig.AdcChannelAlias);
 
         Console.WriteLine($"ADC channel: Alias={ch?.Alias} | Type={ch?.ChannelType} | Unit={ch?.Unit}");
 
@@ -71,7 +63,7 @@ public class ChannelsTests
     [TestMethod]
     public async Task GetChannel_ByAlias_I2cChannel_ReturnsCorrectType()
     {
-        var ch = await _client.Channels.GetChannelAsync(alias: TestConfig.I2cChannelAlias);
+        var ch = await TestSetup.Client.Channels.GetChannelAsync(alias: TestConfig.I2cChannelAlias);
 
         Console.WriteLine($"I2C channel: Alias={ch?.Alias} | Type={ch?.ChannelType} | Unit={ch?.Unit}");
 
@@ -85,6 +77,6 @@ public class ChannelsTests
     public async Task GetChannel_InvalidAlias_ThrowsApiException()
     {
         await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(
-            () => _client.Channels.GetChannelAsync(alias: "NonExistent.Channel.12345"));
+            () => TestSetup.Client.Channels.GetChannelAsync(alias: "NonExistent.Channel.12345"));
     }
 }

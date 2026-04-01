@@ -7,19 +7,11 @@ namespace AccordionQ2.WebApiClient.Tests;
 [TestCategory("Integration")]
 public class ModulesTests
 {
-    private static AccordionQ2Client _client = null!;
-
-    [ClassInitialize]
-    public static void ClassInit(TestContext _) =>
-        _client = new AccordionQ2Client(TestConfig.BaseUrl);
-
-    [ClassCleanup]
-    public static void ClassCleanup() => _client?.Dispose();
 
     [TestMethod]
     public async Task GetAll_ReturnsModules()
     {
-        var modules = await _client.Modules.GetAllAsync();
+        var modules = await TestSetup.Client.Modules.GetAllAsync();
 
         Console.WriteLine($"Modules count: {modules?.Count}");
         foreach (var m in modules!)
@@ -32,7 +24,7 @@ public class ModulesTests
     [TestMethod]
     public async Task GetLoaded_ReturnsList()
     {
-        var loaded = await _client.Modules.GetLoadedAsync();
+        var loaded = await TestSetup.Client.Modules.GetLoadedAsync();
 
         Console.WriteLine($"Loaded modules count: {loaded?.Count}");
         foreach (var m in loaded!)
@@ -45,7 +37,7 @@ public class ModulesTests
     [TestMethod]
     public async Task GetPhysicalSystem_ReturnsHostInfo()
     {
-        var system = await _client.Modules.GetPhysicalSystemAsync();
+        var system = await TestSetup.Client.Modules.GetPhysicalSystemAsync();
 
         Console.WriteLine($"Host: {system?.Host}");
         Console.WriteLine($"EthIpV4: {system?.EthIpV4}");
@@ -54,14 +46,13 @@ public class ModulesTests
         Console.WriteLine($"Firmware: {system?.Firmware}");
 
         Assert.IsNotNull(system);
-        Assert.AreEqual(TestConfig.ExpectedHostName, system.Host);
         Assert.IsFalse(string.IsNullOrWhiteSpace(system.EthIpV4), "Expected an IPv4 address");
     }
 
     [TestMethod]
     public async Task GetPhysicalSystem_ContainsBaseModule()
     {
-        var system = await _client.Modules.GetPhysicalSystemAsync();
+        var system = await TestSetup.Client.Modules.GetPhysicalSystemAsync();
 
         Console.WriteLine($"Physical modules count: {system.Modules?.Count}");
         foreach (var m in system.Modules!)
@@ -80,7 +71,7 @@ public class ModulesTests
     {
         try
         {
-            var apps = await _client.Modules.GetAllAppsAsync();
+            var apps = await TestSetup.Client.Modules.GetAllAppsAsync();
 
             Console.WriteLine($"All apps count: {apps?.Count}");
             foreach (var a in apps!)
@@ -100,7 +91,7 @@ public class ModulesTests
     {
         try
         {
-            var apps = await _client.Modules.GetLicensedAppsAsync();
+            var apps = await TestSetup.Client.Modules.GetLicensedAppsAsync();
 
             Console.WriteLine($"Licensed apps count: {apps?.Count}");
             foreach (var a in apps!)

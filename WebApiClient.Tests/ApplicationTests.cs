@@ -7,19 +7,11 @@ namespace AccordionQ2.WebApiClient.Tests;
 [TestCategory("Integration")]
 public class ApplicationTests
 {
-    private static AccordionQ2Client _client = null!;
-
-    [ClassInitialize]
-    public static void ClassInit(TestContext _) =>
-        _client = new AccordionQ2Client(TestConfig.BaseUrl);
-
-    [ClassCleanup]
-    public static void ClassCleanup() => _client?.Dispose();
 
     [TestMethod]
     public async Task GetName_ReturnsNonEmpty()
     {
-        var name = await _client.Application.GetNameAsync();
+        var name = await TestSetup.Client.Application.GetNameAsync();
 
         Console.WriteLine($"Application name: '{name}'");
 
@@ -30,7 +22,7 @@ public class ApplicationTests
     [TestMethod]
     public async Task GetIdentification_ReturnsNonEmpty()
     {
-        var id = await _client.Application.GetIdentificationAsync();
+        var id = await TestSetup.Client.Application.GetIdentificationAsync();
 
         Console.WriteLine($"Identification: '{id}'");
 
@@ -41,7 +33,7 @@ public class ApplicationTests
     [TestMethod]
     public async Task GetStatus_ReturnsValidEnum()
     {
-        var status = await _client.Application.GetStatusAsync();
+        var status = await TestSetup.Client.Application.GetStatusAsync();
 
         Console.WriteLine($"Application status: {status}");
 
@@ -52,7 +44,7 @@ public class ApplicationTests
     [TestMethod]
     public async Task ListConfigFiles_ReturnsArray()
     {
-        var files = await _client.Application.ListConfigFilesAsync();
+        var files = await TestSetup.Client.Application.ListConfigFilesAsync();
 
         Console.WriteLine($"Config files count: {files?.Length}");
         foreach (var f in files!)
@@ -65,7 +57,7 @@ public class ApplicationTests
     [TestMethod]
     public async Task GetLoadedConfigFiles_ReturnsList()
     {
-        var files = await _client.Application.GetLoadedConfigFilesAsync();
+        var files = await TestSetup.Client.Application.GetLoadedConfigFilesAsync();
 
         Console.WriteLine($"Loaded config files count: {files?.Count}");
         foreach (var f in files!)

@@ -9,10 +9,30 @@
     <AssemblyName>AccordionQ2.WebApiClient</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+
+    <!-- NuGet package metadata -->
+    <IsPackable>true</IsPackable>
+    <PackageId>AccordionQ2.WebApiClient</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>E-Sharp AB</Authors>
+    <Company>E-Sharp AB</Company>
+    <Description>HTTP client library for the AccordionQ2 Hardware Management REST API.</Description>
+    <PackageTags>accordion;webapi;client;hardware</PackageTags>
+    <RepositoryUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE" Pack="true" PackagePath="" />
+    <None Include="..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>

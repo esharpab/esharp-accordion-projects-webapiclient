@@ -6,3 +6,5 @@ obj/
 Debug/
 Release/
 *.nupkg
+*.snupkg
+nupkgs/

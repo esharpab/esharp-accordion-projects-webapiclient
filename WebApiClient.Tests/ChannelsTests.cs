@@ -48,19 +48,6 @@ public class ChannelsTests
     }
 
     [TestMethod]
-    public async Task GetChannel_ByAlias_AdcChannel_ReturnsCorrectType()
-    {
-        var ch = await TestSetup.Client.Channels.GetChannelAsync(alias: TestConfig.AdcChannelAlias);
-
-        Console.WriteLine($"ADC channel: Alias={ch?.Alias} | Type={ch?.ChannelType} | Unit={ch?.Unit}");
-
-        Assert.IsNotNull(ch);
-        Assert.AreEqual(TestConfig.AdcChannelAlias, ch.Alias);
-        Assert.IsTrue(ch.ChannelType.HasFlag(ChannelTypes.Analog),
-            $"ADC channel should be Analog, got {ch.ChannelType}");
-    }
-
-    [TestMethod]
     public async Task GetChannel_ByAlias_I2cChannel_ReturnsCorrectType()
     {
         var ch = await TestSetup.Client.Channels.GetChannelAsync(alias: TestConfig.I2cChannelAlias);

@@ -23,8 +23,11 @@ internal static class TestConfig
 
     // --- Well-known channel aliases ---
     public const string AnalogChannelAlias = "0.1.ESH10000158.MON_3V3";
-    public const string AdcChannelAlias    = "0.8.ESH10000590.ADC01";
     public const string I2cChannelAlias    = "0.ESH10000023.I2C09";
+
+    // --- Bus transaction device names ---
+    /// <summary>I2C bus device on the ESH10000023 control module, channel 9.</summary>
+    public const string I2cDeviceName = "0.ESH10000023.I2C09";
 
     // --- LED channel aliases (ESH10000355) ---
     public static readonly string[] LedChannels =

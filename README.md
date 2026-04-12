@@ -43,7 +43,7 @@ await client.Channels.ConfigureAsync(new ChannelConfigRequest
 
 ## API Reference
 
-`AccordionQ2Client` exposes six operation groups:
+`AccordionQ2Client` exposes seven operation groups:
 
 ### `client.Resources` — Hardware resource values
 
@@ -169,6 +169,60 @@ await client.Application.LoadConfigFileAsync("default.cfg");
 | Method | Description |
 |---|---|
 | `GetStatusAsync()` | Returns `ConnectionStatusDto` with the hardware manager connection state |
+
+---
+
+### `client.Comm` — Raw bus transactions (I2C, UART, SPI, Socket)
+
+All byte data is **hex-encoded** (uppercase, no separator) on the wire. `DataToSend` and `Received` are plain hex strings (e.g. `"AABB"` = two bytes `0xAA 0xBB`). The I2C `Address` and the Socket `TerminationByte` are two-digit hex strings (e.g. `"50"` for 0x50).
+
+| Method | Description |
+|---|---|
+| `I2cAsync(request)` | Send, Receive, SendReceive, or Scan on an I2C bus |
+| `UartAsync(request)` | Send, Receive, SendReceive, or ClearBuffers on a UART port |
+| `SpiAsync(request)` | Send, Receive, or SendReceive on a SPI bus |
+| `SocketAsync(request)` | Send, Receive, or SendReceive over a TCP socket |
+
+```csharp
+// I2C: scan the bus for connected devices
+var scan = await client.Comm.I2cAsync(new I2cTransactionRequest
+{
+    DeviceName = "0.ESH10000597.I2C00",
+    Address    = "00",
+    Action     = BusActions.Scan,
+});
+foreach (var addr in Convert.FromHexString(scan.Received))
+    Console.WriteLine($"Found device at 0x{addr:X2}");
+
+// I2C: write two bytes to address 0x50
+var write = await client.Comm.I2cAsync(new I2cTransactionRequest
+{
+    DeviceName = "0.ESH10000597.I2C00",
+    Address    = "50",
+    Action     = BusActions.Send,
+    DataToSend = "0010",   // register 0x00, value 0x10
+});
+
+// I2C: read 4 bytes from address 0x50
+var read = await client.Comm.I2cAsync(new I2cTransactionRequest
+{
+    DeviceName             = "0.ESH10000597.I2C00",
+    Address                = "50",
+    Action                 = BusActions.Receive,
+    NumberOfBytesToReceive = 4,
+});
+byte[] bytes = Convert.FromHexString(read.Received);
+
+// UART: send a SCPI query and read the response
+var uart = await client.Comm.UartAsync(new UartTransactionRequest
+{
+    DeviceName             = "MyUartDevice",
+    Action                 = BusActions.SendReceive,
+    DataToSend             = Convert.ToHexString(System.Text.Encoding.ASCII.GetBytes("*IDN?\n")),
+    NumberOfBytesToReceive = 64,
+    TimeoutMs              = 2000,
+});
+```
 
 ---
 

@@ -35,6 +35,9 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>Connection status operations.</summary>
     public ConnectionGroup Connection { get; }
 
+    /// <summary>Bus communication operations (I2C, UART, SPI, Socket).</summary>
+    public CommGroup Comm { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -59,6 +62,7 @@ public sealed class AccordionQ2Client : IDisposable
         Application = new ApplicationGroup(_http);
         Media       = new MediaGroup(_http);
         Connection  = new ConnectionGroup(_http);
+        Comm        = new CommGroup(_http);
     }
 
     /// <inheritdoc/>

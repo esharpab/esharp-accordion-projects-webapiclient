@@ -3,6 +3,19 @@ namespace AccordionQ2.WebApiClient.Models;
 /// <summary>Mirrors <c>EsharpDefinitions.CommonTypes.ModuleStatus</c>.</summary>
 public enum ModuleStatus { Unknown, OK, Warning, Error, Disabled }
 
+/// <summary>Mirrors <c>EsharpDefinitions.Types.BusTransactionTypes.BusActions</c>.</summary>
+public enum BusActions
+{
+    Undefined    = -1,
+    Send         =  0,
+    Receive      =  1,
+    SendReceive  =  2,
+    Scan         =  3,
+    Break        =  4,
+    ClearBuffers =  5,
+    Reconfigure  =  6
+}
+
 /// <summary>Mirrors <c>EsharpDefinitions.Types.ApplicationTypes.AppTypes</c>.</summary>
 public enum AppTypes { Unknown, SoftwareModule, HardwareModule }
 

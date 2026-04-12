@@ -43,7 +43,7 @@ public class NumericMeasureRequest
 }
 
 /// <summary>
-/// Acquisition metadata returned by <see cref="NumericResultsGroup.MeasureAsync"/>.
+/// Acquisition metadata returned by <see cref="Groups.NumericResultsGroup.MeasureAsync"/>.
 /// </summary>
 public class NumericMeasureResultDto
 {

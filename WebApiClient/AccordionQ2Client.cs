@@ -38,6 +38,9 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>Bus communication operations (I2C, UART, SPI, Socket).</summary>
     public CommGroup Comm { get; }
 
+    /// <summary>Fast numeric sampling operations.</summary>
+    public NumericResultsGroup NumericResults { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -56,13 +59,14 @@ public sealed class AccordionQ2Client : IDisposable
         _http = httpClient ?? new HttpClient();
         _http.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
 
-        Resources   = new ResourcesGroup(_http);
-        Channels    = new ChannelsGroup(_http);
-        Modules     = new ModulesGroup(_http);
-        Application = new ApplicationGroup(_http);
-        Media       = new MediaGroup(_http);
-        Connection  = new ConnectionGroup(_http);
-        Comm        = new CommGroup(_http);
+        Resources      = new ResourcesGroup(_http);
+        Channels       = new ChannelsGroup(_http);
+        Modules        = new ModulesGroup(_http);
+        Application    = new ApplicationGroup(_http);
+        Media          = new MediaGroup(_http);
+        Connection     = new ConnectionGroup(_http);
+        Comm           = new CommGroup(_http);
+        NumericResults = new NumericResultsGroup(_http);
     }
 
     /// <inheritdoc/>

@@ -18,8 +18,6 @@
     <Company>E-Sharp AB</Company>
     <Description>HTTP client library for the AccordionQ2 Hardware Management REST API.</Description>
     <PackageTags>accordion;webapi;client;hardware</PackageTags>
-    <RepositoryUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>

@@ -2,7 +2,7 @@
 <RunSettings>
   <RunConfiguration>
     <EnvironmentVariables>
-      <ACCORDIONQ2_API_URL>http://agent64.local:5000</ACCORDIONQ2_API_URL>
+      <ACCORDIONQ2_API_URL>http://mjsagent.local:5000</ACCORDIONQ2_API_URL>
     </EnvironmentVariables>
   </RunConfiguration>
 </RunSettings>

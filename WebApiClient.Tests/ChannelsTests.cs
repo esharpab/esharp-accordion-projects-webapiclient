@@ -63,7 +63,7 @@ public class ChannelsTests
     [TestMethod]
     public async Task GetChannel_InvalidAlias_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(
             () => TestSetup.Client.Channels.GetChannelAsync(alias: "NonExistent.Channel.12345"));
     }
 }

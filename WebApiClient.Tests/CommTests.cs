@@ -50,7 +50,7 @@ public class CommTests
     public async Task I2c_Send_NullDataToSend_ThrowsApiException()
     {
         // null DataToSend collapses to [] in the controller → ArgumentException → 400
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.I2cAsync(new I2cTransactionRequest
             {
                 DeviceName = TestConfig.I2cDeviceName,
@@ -64,7 +64,7 @@ public class CommTests
     public async Task I2c_Send_EmptyDataToSend_ThrowsApiException()
     {
         // Empty byte array is also rejected by the underlying BusTransaction constructor
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.I2cAsync(new I2cTransactionRequest
             {
                 DeviceName = TestConfig.I2cDeviceName,
@@ -77,7 +77,7 @@ public class CommTests
     [TestMethod]
     public async Task I2c_SendReceive_EmptyDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.I2cAsync(new I2cTransactionRequest
             {
                 DeviceName             = TestConfig.I2cDeviceName,
@@ -96,7 +96,7 @@ public class CommTests
     public async Task Uart_Send_NullDataToSend_ThrowsApiException()
     {
         // Validation fires before any hardware call, so any device name is fine here
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.UartAsync(new UartTransactionRequest
             {
                 DeviceName = "validation-only",
@@ -108,7 +108,7 @@ public class CommTests
     [TestMethod]
     public async Task Uart_Send_EmptyDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.UartAsync(new UartTransactionRequest
             {
                 DeviceName = "validation-only",
@@ -120,7 +120,7 @@ public class CommTests
     [TestMethod]
     public async Task Uart_SendReceive_EmptyDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.UartAsync(new UartTransactionRequest
             {
                 DeviceName             = "validation-only",
@@ -138,7 +138,7 @@ public class CommTests
     [TestMethod]
     public async Task Spi_Send_NullDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.SpiAsync(new SpiTransactionRequest
             {
                 DeviceName = "validation-only",
@@ -150,7 +150,7 @@ public class CommTests
     [TestMethod]
     public async Task Spi_Send_EmptyDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.SpiAsync(new SpiTransactionRequest
             {
                 DeviceName = "validation-only",
@@ -162,7 +162,7 @@ public class CommTests
     [TestMethod]
     public async Task Spi_SendReceive_EmptyDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.SpiAsync(new SpiTransactionRequest
             {
                 DeviceName             = "validation-only",
@@ -179,7 +179,7 @@ public class CommTests
     [TestMethod]
     public async Task Socket_Send_NullDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.SocketAsync(new SocketTransactionRequest
             {
                 DeviceName = "validation-only",
@@ -193,7 +193,7 @@ public class CommTests
     [TestMethod]
     public async Task Socket_Send_EmptyDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.SocketAsync(new SocketTransactionRequest
             {
                 DeviceName = "validation-only",
@@ -207,7 +207,7 @@ public class CommTests
     [TestMethod]
     public async Task Socket_SendReceive_EmptyDataToSend_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(() =>
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
             TestSetup.Client.Comm.SocketAsync(new SocketTransactionRequest
             {
                 DeviceName             = "validation-only",

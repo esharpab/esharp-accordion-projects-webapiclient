@@ -60,7 +60,7 @@ public class NumericResultsTests
     [TestMethod]
     public async Task GetTargets_InvalidChannel_ThrowsApiException()
     {
-        await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(
+        await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(
             () => TestSetup.Client.NumericResults.GetTargetsAsync("NonExistent.Channel.12345"));
     }
 
@@ -144,7 +144,7 @@ public class NumericResultsTests
         RequireChannel();
         await MeasureAsync(reducedSet: true);
 
-        var ex = await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(
             () => TestSetup.Client.NumericResults.GetSamplesAsync(_channel!.NetName));
 
         Assert.AreEqual(400, ex.StatusCode,
@@ -173,7 +173,7 @@ public class NumericResultsTests
     public async Task GetMean_WithoutPriorMeasure_Throws404()
     {
         // Use a channel name that has never been measured — the server cache will have no entry for it
-        var ex = await Assert.ThrowsExceptionAsync<AccordionQ2ApiException>(
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(
             () => TestSetup.Client.NumericResults.GetMeanAsync("No.Such.NumericResult.Channel.99999"));
 
         Assert.AreEqual(404, ex.StatusCode);

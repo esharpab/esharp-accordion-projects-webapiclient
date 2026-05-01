@@ -41,9 +41,22 @@ await client.Channels.ConfigureAsync(new ChannelConfigRequest
 
 ---
 
+## Documentation
+
+Comprehensive API documentation is available in the [`docs/`](docs/index.md) folder:
+
+- [Getting Started / Installation](docs/getting-started/installation.md)
+- [Quick Start](docs/getting-started/quickstart.md)
+- [API Overview](docs/api/overview.md) — all 8 operation groups at a glance
+- [Error Handling](docs/error-handling.md)
+- [Models Reference](docs/reference/models.md)
+- [Enums Reference](docs/reference/enums.md)
+
+---
+
 ## API Reference
 
-`AccordionQ2Client` exposes seven operation groups:
+`AccordionQ2Client` exposes eight operation groups:
 
 ### `client.Resources` — Hardware resource values
 

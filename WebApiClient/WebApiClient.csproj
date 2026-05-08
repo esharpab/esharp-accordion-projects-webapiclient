@@ -13,7 +13,7 @@
     <!-- NuGet package metadata -->
     <IsPackable>true</IsPackable>
     <PackageId>AccordionQ2.WebApiClient</PackageId>
-    <Version>5.3.2</Version>
+    <Version>5.3.3</Version>
     <Authors>E-Sharp AB</Authors>
     <Company>E-Sharp AB</Company>
     <Description>HTTP client library for the AccordionQ2 Hardware Management REST API.</Description>

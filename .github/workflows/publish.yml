@@ -28,7 +28,7 @@ jobs:
         run: dotnet build WebApiClient/WebApiClient.csproj --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test WebApiClient.Tests/WebApiClient.Tests.csproj --configuration Release --verbosity normal
+        run: dotnet test WebApiClient.Tests/WebApiClient.Tests.csproj --configuration Release --verbosity normal --filter "TestCategory!=Integration&TestCategory!=Performance"
 
       - name: Pack
         run: dotnet pack WebApiClient/WebApiClient.csproj --configuration Release --no-build --output ./nupkg

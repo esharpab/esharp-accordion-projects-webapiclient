@@ -43,9 +43,6 @@ public class I2cTransactionRequest : BusTransactionRequestBase
 /// </summary>
 public class UartTransactionRequest : BusTransactionRequestBase
 {
-    /// <summary>Serial port name (e.g. "/dev/ttyS0" or "COM3").</summary>
-    public string PortName { get; set; } = string.Empty;
-
     /// <summary>Baud rate (e.g. 9600, 115200).</summary>
     public int BaudRate { get; set; } = 9600;
 

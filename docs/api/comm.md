@@ -88,6 +88,13 @@ Use `UartTransactionRequest`:
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `DeviceName` | `string` | — | Device name as registered in the hardware manager |
+| `PortName` | `string` | `""` | Serial port identifier (e.g. `"/dev/ttyS0"` or `"COM3"`) |
+| `BaudRate` | `int` | `9600` | Baud rate (e.g. `9600`, `115200`) |
+| `BusType` | `UartBusTypes` | `RS232` | Electrical standard: `RS232`, `RS422`, or `RS485` |
+| `FlowControl` | `FlowControlTypes` | `None` | Flow control mode |
+| `Parity` | `ParityTypes` | `None` | Parity setting |
+| `UseTerminationByte` | `bool` | `false` | Whether to use `TerminationByte` as a receive boundary |
+| `TerminationByte` | `string` | `"0A"` | Termination byte as two-digit hex (only used when `UseTerminationByte` is `true`) |
 | `Action` | `BusActions` | `Send` | `Send`, `Receive`, `SendReceive`, or `ClearBuffers` |
 | `DataToSend` | `string?` | `null` | Bytes to transmit, hex-encoded |
 | `NumberOfBytesToReceive` | `int` | `0` | Expected receive count |
@@ -96,17 +103,21 @@ Use `UartTransactionRequest`:
 ### Example
 
 ```csharp
-// Send a SCPI query and read the response
+// Send a SCPI query at 115200 baud and read the response
 // "*IDN?\n" in hex is "2A49444E3F0A"
 var resp = await client.Comm.UartAsync(new UartTransactionRequest
 {
     DeviceName             = "MyUartDevice",
+    PortName               = "/dev/ttyS0",
+    BaudRate               = 115200,
+    BusType                = UartBusTypes.RS232,
+    FlowControl            = FlowControlTypes.None,
+    Parity                 = ParityTypes.None,
     Action                 = BusActions.SendReceive,
     DataToSend             = "2A49444E3F0A",
     NumberOfBytesToReceive = 64,
     TimeoutMs              = 2000,
 });
-// Convert hex response back to ASCII
 var text = System.Text.Encoding.ASCII.GetString(
     Convert.FromHexString(resp.Received));
 Console.WriteLine(text);

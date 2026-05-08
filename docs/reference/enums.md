@@ -57,6 +57,50 @@ Bus transaction action types. Mirrors `EsharpDefinitions.Types.BusTransactionTyp
 
 ---
 
+## `UartBusTypes`
+
+UART electrical standard. Mirrors `EsharpDefinitions.Types.BusTransactionTypes.UartBusTypes`.
+
+| Value | Description |
+|-------|-------------|
+| `Undefined` | Not defined |
+| `RS232` | Standard RS-232 full-duplex serial |
+| `RS422` | Differential RS-422 serial |
+| `RS485` | Multi-drop RS-485 serial |
+
+---
+
+## `FlowControlTypes`
+
+UART flow control mode. Mirrors `EsharpDefinitions.Types.BusTransactionTypes.FlowControlTypes`.
+
+| Value | Description |
+|-------|-------------|
+| `Undefined` | Not defined |
+| `None` | No flow control |
+| `XON_XOFF` | Software (XON/XOFF) flow control |
+| `RTS_CTS` | Hardware RTS/CTS flow control |
+| `RTS_CTS_AND_XON_XOFF` | Hardware RTS/CTS combined with XON/XOFF |
+| `DTR_DSR` | Hardware DTR/DSR flow control |
+| `DTR_DSR_AND_XON_XOFF` | Hardware DTR/DSR combined with XON/XOFF |
+
+---
+
+## `ParityTypes`
+
+Serial port parity. Mirrors `EsharpDefinitions.Types.InstrumentTypes.ParityTypes`.
+
+| Value | Description |
+|-------|-------------|
+| `Undefined` | Not defined / unknown |
+| `None` | No parity |
+| `Even` | Even parity |
+| `Odd` | Odd parity |
+| `Mark` | Mark parity |
+| `Space` | Space parity |
+
+---
+
 ## `DirectionTypes`
 
 I/O direction flags for channels. Decorated with `[Flags]`. Mirrors `EsharpDefinitions.Types.BusTransactionTypes.DirectionTypes`.

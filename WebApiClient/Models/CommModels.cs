@@ -43,6 +43,27 @@ public class I2cTransactionRequest : BusTransactionRequestBase
 /// </summary>
 public class UartTransactionRequest : BusTransactionRequestBase
 {
+    /// <summary>Serial port name (e.g. "/dev/ttyS0" or "COM3").</summary>
+    public string PortName { get; set; } = string.Empty;
+
+    /// <summary>Baud rate (e.g. 9600, 115200).</summary>
+    public int BaudRate { get; set; } = 9600;
+
+    /// <summary>UART bus type (RS232, RS422, RS485).</summary>
+    public UartBusTypes BusType { get; set; } = UartBusTypes.RS232;
+
+    /// <summary>Flow control mode.</summary>
+    public FlowControlTypes FlowControl { get; set; } = FlowControlTypes.None;
+
+    /// <summary>Parity setting.</summary>
+    public ParityTypes Parity { get; set; } = ParityTypes.None;
+
+    /// <summary>Whether to use a termination byte as a receive boundary.</summary>
+    public bool UseTerminationByte { get; set; } = false;
+
+    /// <summary>Termination byte as a two-digit hex string (e.g. "0A" for LF). Only used when <see cref="UseTerminationByte"/> is true.</summary>
+    public string TerminationByte { get; set; } = "0A";
+
     /// <summary>Transaction timeout in milliseconds.</summary>
     public int TimeoutMs { get; set; } = 1000;
 }

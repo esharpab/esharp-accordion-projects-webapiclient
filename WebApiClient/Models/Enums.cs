@@ -70,3 +70,21 @@ public enum ChannelTypes
     NumericResults = 1 << 25,
     Calibration    = 1 << 26
 }
+
+/// <summary>Mirrors <c>EsharpDefinitions.Types.BusTransactionTypes.UartBusTypes</c>.</summary>
+public enum UartBusTypes { Undefined = -1, RS232 = 0, RS422 = 1, RS485 = 2 }
+
+/// <summary>Mirrors <c>EsharpDefinitions.Types.BusTransactionTypes.FlowControlTypes</c>.</summary>
+public enum FlowControlTypes
+{
+    Undefined              = -1,
+    None                   =  0,
+    XON_XOFF              =  1,
+    RTS_CTS               =  2,
+    RTS_CTS_AND_XON_XOFF  =  3,
+    DTR_DSR               =  4,
+    DTR_DSR_AND_XON_XOFF  =  5
+}
+
+/// <summary>Mirrors <c>EsharpDefinitions.Types.InstrumentTypes.ParityTypes</c>.</summary>
+public enum ParityTypes { Undefined = -1, Even = 0, Mark = 1, None = 2, Odd = 3, Space = 4 }

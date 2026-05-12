@@ -41,6 +41,9 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>Fast numeric sampling operations.</summary>
     public NumericResultsGroup NumericResults { get; }
 
+    /// <summary>Calibration channel read/write operations.</summary>
+    public CalibrationGroup Calibration { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -67,6 +70,7 @@ public sealed class AccordionQ2Client : IDisposable
         Connection     = new ConnectionGroup(_http);
         Comm           = new CommGroup(_http);
         NumericResults = new NumericResultsGroup(_http);
+        Calibration    = new CalibrationGroup(_http);
     }
 
     /// <inheritdoc/>

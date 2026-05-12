@@ -1,6 +1,6 @@
 # API Overview
 
-`AccordionQ2Client` exposes **eight operation groups**, each covering one area of the hardware API. All methods are **asynchronous** and throw `AccordionQ2ApiException` on HTTP errors.
+`AccordionQ2Client` exposes **nine operation groups**, each covering one area of the hardware API. All methods are **asynchronous** and throw `AccordionQ2ApiException` on HTTP errors.
 
 ```csharp
 using AccordionQ2.WebApiClient;
@@ -15,6 +15,7 @@ client.Application     // Application lifecycle & config files
 client.Media           // Media file management
 client.Comm            // Raw bus transactions (I2C, UART, SPI, Socket)
 client.NumericResults  // Fast numeric sampling & statistics
+client.Calibration     // Calibration channel read/write
 ```
 
 | Group | Property | Description | Details |
@@ -27,3 +28,4 @@ client.NumericResults  // Fast numeric sampling & statistics
 | [Media](media.md) | `client.Media` | Upload/download media files | [→](media.md) |
 | [Comm](comm.md) | `client.Comm` | Raw bus transactions (I2C, UART, SPI, Socket) | [→](comm.md) |
 | [Numeric Results](numeric-results.md) | `client.NumericResults` | High-speed sampling with server-side statistics | [→](numeric-results.md) |
+| [Calibration](calibration.md) | `client.Calibration` | Read and write Calibration channel tables | [→](calibration.md) |

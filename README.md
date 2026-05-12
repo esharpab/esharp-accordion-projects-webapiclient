@@ -47,7 +47,7 @@ Comprehensive API documentation is available in the [`docs/`](docs/index.md) fol
 
 - [Getting Started / Installation](docs/getting-started/installation.md)
 - [Quick Start](docs/getting-started/quickstart.md)
-- [API Overview](docs/api/overview.md) — all 8 operation groups at a glance
+- [API Overview](docs/api/overview.md) — all 9 operation groups at a glance
 - [Error Handling](docs/error-handling.md)
 - [Models Reference](docs/reference/models.md)
 - [Enums Reference](docs/reference/enums.md)
@@ -60,7 +60,8 @@ Comprehensive API documentation is available in the [`docs/`](docs/index.md) fol
 
 ### `client.Resources` — Hardware resource values
 
-Resources are identified by name (e.g. `"Voltage.VDD"`, `"Temperature.Ambient"`).
+Resources are identified by name (e.g. `"Voltage.VDD"`, `"Temperature.Ambient"`).  
+Both **NetName** (e.g. `"0.23.ESH10000517.READ_TEMPERATURE"`) and **Alias** (e.g. `"FRONT_AIR READ TEMPERATURE"`) are accepted interchangeably by all methods.
 
 | Method | Description |
 |---|---|
@@ -235,6 +236,39 @@ var uart = await client.Comm.UartAsync(new UartTransactionRequest
     NumberOfBytesToReceive = 64,
     TimeoutMs              = 2000,
 });
+```
+
+---
+
+### `client.Calibration` — Calibration channel read/write
+
+Calibration channels carry a `CalibrationTable` encoded as a Base64 binary payload. The server
+transparently decodes/encodes that payload, so you work with plain objects.
+Both **NetName** and **Alias** are accepted for the channel name.
+
+| Method | Description |
+|---|---|
+| `GetChannelsAsync()` | Returns all Calibration channels as `List<CalibrationChannelDto>` |
+| `GetTableAsync(channelName)` | Reads and decodes the CalibrationTable from a channel |
+| `SetTableAsync(channelName, table)` | Encodes and writes a CalibrationTable to a channel |
+
+```csharp
+// Read calibration data
+var table = await client.Calibration.GetTableAsync("0.8.ESH10000590.CAL0");
+foreach (var row in table.CalData)
+    Console.WriteLine($"{row.Key}: gain={row.Gain:F6}, offset={row.Offset:F6}");
+
+// Modify a row and write back
+var updated = new CalibrationTableDto
+{
+    ProductId    = table.ProductId,
+    Revision     = table.Revision,
+    SerialNumber = table.SerialNumber,
+    CalData      = table.CalData.Select(r =>
+        r.Key == "ADC0" ? new CalibrationRowDto { Key = r.Key, Gain = 1.0012, Offset = 0.001 } : r
+    ).ToList()
+};
+await client.Calibration.SetTableAsync("0.8.ESH10000590.CAL0", updated);
 ```
 
 ---

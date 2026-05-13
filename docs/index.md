@@ -38,8 +38,18 @@ Console.WriteLine($"CPU temperature: {temp}");
 
 - [Overview](api/overview.md) &mdash; all 8 API groups at a glance
 - [Resources](api/resources.md), [Channels](api/channels.md), [Modules](api/modules.md), [Application](api/application.md), [Media](api/media.md), [Connection](api/connection.md)
+- [Calibration](api/calibration.md) &mdash; calibration operations
 - [Comm (Bus Transactions)](api/comm.md) &mdash; I2C, UART, SPI, Socket
 - [Numeric Results](api/numeric-results.md) &mdash; high-speed sampling
+
+## Reference
+
+- [Models](reference/models.md) &mdash; request/response model classes
+- [Enums](reference/enums.md) &mdash; enumeration types
+
+## Error Handling
+
+- [Error Handling](error-handling.md) &mdash; exceptions and error patterns
 
 ## Also Available
 

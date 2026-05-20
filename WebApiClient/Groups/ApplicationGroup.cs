@@ -56,4 +56,13 @@ public sealed class ApplicationGroup : ApiGroupBase
     /// <summary>Deletes a configuration file from the device.</summary>
     public Task DeleteConfigFileAsync(string fileName, CancellationToken ct = default)
         => DeleteAsync($"api/application/config/{Uri.EscapeDataString(fileName)}", ct);
+
+    // --- System log ---
+
+    /// <summary>
+    /// Returns the last <paramref name="tail"/> lines of the system log (hw.log).
+    /// Pass 0 to retrieve the entire log.
+    /// </summary>
+    public Task<string[]> GetSystemLogAsync(int tail = 100, CancellationToken ct = default)
+        => GetAsync<string[]>($"api/application/log?tail={tail}", ct);
 }

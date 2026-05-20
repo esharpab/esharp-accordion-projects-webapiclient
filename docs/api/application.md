@@ -17,6 +17,7 @@ Application lifecycle management and configuration file operations.
 | `DownloadConfigFileAsync(fileName, ct?)` | `Task<byte[]>` | Download a configuration file as raw bytes. |
 | `UploadConfigFileAsync(fileName, data, ct?)` | `Task` | Upload a configuration file to the device. |
 | `DeleteConfigFileAsync(fileName, ct?)` | `Task` | Delete a configuration file from the device. |
+| `GetSystemLogAsync(tail?, ct?)` | `Task<string[]>` | Last `tail` lines of the system log (hw.log). Default: 100. |
 
 ## Examples
 
@@ -79,4 +80,19 @@ await client.Application.SaveConfigFileAsync("current_state.cfg");
 
 ```csharp
 await client.Application.DeleteConfigFileAsync("old_config.cfg");
+```
+
+### Reading the System Log
+
+```csharp
+// Get the last 100 lines (default)
+string[] lines = await client.Application.GetSystemLogAsync();
+foreach (var line in lines)
+    Console.WriteLine(line);
+
+// Get the last 200 lines
+string[] recent = await client.Application.GetSystemLogAsync(tail: 200);
+
+// Get the entire log
+string[] full = await client.Application.GetSystemLogAsync(tail: 0);
 ```

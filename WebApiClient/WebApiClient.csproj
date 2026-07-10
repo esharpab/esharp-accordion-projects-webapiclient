@@ -20,8 +20,11 @@
     <PackageTags>accordion;webapi;client;hardware</PackageTags>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageOutputPath>..\nupkg</PackageOutputPath>
   </PropertyGroup>
 
@@ -30,7 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 

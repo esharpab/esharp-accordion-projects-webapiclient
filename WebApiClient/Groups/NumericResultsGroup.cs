@@ -34,6 +34,46 @@ public sealed class NumericResultsGroup : ApiGroupBase
     internal NumericResultsGroup(HttpClient http) : base(http) { }
 
     /// <summary>Returns all NumericResult channels with their sampling capabilities.</summary>
+    /// <summary>
+    /// Acquires <paramref name="samples"/> samples on <paramref name="target"/> through the NumericResult channel
+    /// <paramref name="channel"/> and returns them with their statistics in one call (accordionq2 contract
+    /// section 8). With both limits, <see cref="NumericStatsDto.Cp"/> and <see cref="NumericStatsDto.Cpk"/> are set.
+    /// It reconfigures the channel, so it needs the lease while someone else holds it.
+    /// </summary>
+    public async Task<NumericAcquisitionDto> AcquireAsync(string channel, string target, int samples = 1000,
+        double? lsl = null, double? usl = null, CancellationToken ct = default)
+    {
+        var raw = await PostAsync<RawAcquisition>("api/numeric-results/acquire",
+            new { Channel = channel, Target = target, Samples = samples, Lsl = lsl, Usl = usl }, ct).ConfigureAwait(false);
+        var bytes = Convert.FromBase64String(raw.Samples ?? string.Empty);
+        var values = new double[bytes.Length / 8];
+        for (var i = 0; i < values.Length; i++)
+        {
+            // Little-endian float64, whatever this machine is.
+            var word = BitConverter.ToInt64(bytes, i * 8);
+            if (!BitConverter.IsLittleEndian)
+                word = System.Net.IPAddress.HostToNetworkOrder(word);
+            values[i] = BitConverter.Int64BitsToDouble(word);
+        }
+        return new NumericAcquisitionDto
+        {
+            Channel = raw.Channel, Target = raw.Target, Unit = raw.Unit, SampleRate = raw.SampleRate,
+            Started = raw.Started, DurationMs = raw.DurationMs, Samples = values, Stats = raw.Stats ?? new NumericStatsDto(),
+        };
+    }
+
+    private sealed class RawAcquisition
+    {
+        public string Channel { get; set; } = string.Empty;
+        public string Target { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public int SampleRate { get; set; }
+        public DateTime Started { get; set; }
+        public double? DurationMs { get; set; }
+        public string? Samples { get; set; }
+        public NumericStatsDto? Stats { get; set; }
+    }
+
     public Task<List<NumericResultChannelDto>> GetChannelsAsync(CancellationToken ct = default)
         => GetAsync<List<NumericResultChannelDto>>("api/numeric-results/channels", ct);
 

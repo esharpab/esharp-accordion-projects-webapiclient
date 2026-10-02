@@ -143,3 +143,36 @@ public class LeaseDto
     public string? Owner { get; set; }
     public double ExpiresInMs { get; set; }
 }
+
+/// <summary>One acquisition from <c>POST /api/numeric-results/acquire</c> (contract section 8).</summary>
+public class NumericAcquisitionDto
+{
+    public string Channel { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    /// <summary>The target channel's unit.</summary>
+    public string Unit { get; set; } = string.Empty;
+    /// <summary>The sample rate the hardware reported, in Hz.</summary>
+    public int SampleRate { get; set; }
+    public DateTime Started { get; set; }
+    public double? DurationMs { get; set; }
+    public double[] Samples { get; set; } = Array.Empty<double>();
+    public NumericStatsDto Stats { get; set; } = new NumericStatsDto();
+}
+
+/// <summary>The statistics of an acquisition; null where the samples can't give one.</summary>
+public class NumericStatsDto
+{
+    public int Count { get; set; }
+    public double? Min { get; set; }
+    public double? Max { get; set; }
+    public double? Range { get; set; }
+    public double? Mean { get; set; }
+    public double? Median { get; set; }
+    public double? Stdev { get; set; }
+    public double? Rms { get; set; }
+    public double? Skewness { get; set; }
+    public double? Kurtosis { get; set; }
+    /// <summary>Set when both limits were given.</summary>
+    public double? Cp { get; set; }
+    public double? Cpk { get; set; }
+}

@@ -1,3 +1,4 @@
+using AccordionQ2.WebApiClient.Models;
 using AccordionQ2.WebApiClient.Internal;
 
 namespace AccordionQ2.WebApiClient.Groups;
@@ -34,6 +35,15 @@ public sealed class ResourcesGroup : ApiGroupBase
         var r = await PostAsync<ValuesDto>("api/resources/values/get", new { Names = names }, ct).ConfigureAwait(false);
         return r.Resources;
     }
+
+    /// <summary>
+    /// Reads several resources, accepting values the WebApi read at most <paramref name="maxAgeMs"/> ago
+    /// (accordionq2 contract section 5.2); the rest are read from the hardware. 0 reads every one, as
+    /// <see cref="GetValuesAsync(string[], CancellationToken)"/> does. The result says how old each value is.
+    /// A WebApi without the cache reads every value and reports no ages.
+    /// </summary>
+    public Task<ResourceValuesDto> ReadValuesAsync(string[] names, int maxAgeMs, CancellationToken ct = default)
+        => PostAsync<ResourceValuesDto>("api/resources/values/get", new { Names = names, MaxAgeMs = maxAgeMs }, ct);
 
     /// <summary>Sets values for multiple resources in one round-trip.</summary>
     public Task SetValuesAsync(Dictionary<string, string> resources, CancellationToken ct = default)

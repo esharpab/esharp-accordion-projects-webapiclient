@@ -84,3 +84,13 @@ public class StreamStateDto
     /// <summary>In <c>configuration</c>: Added, Removed or Changed.</summary>
     public string? ChangeType { get; set; }
 }
+
+/// <summary>Values with their age, from <c>POST /api/resources/values/get</c> with <c>maxAgeMs</c> (contract section 5.2).</summary>
+public class ResourceValuesDto
+{
+    /// <summary>Each requested name and its value.</summary>
+    public Dictionary<string, string> Resources { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>How old each value is in milliseconds; 0 when it was just read. Empty from a WebApi without the cache.</summary>
+    public Dictionary<string, double> AgeMs { get; set; } = new Dictionary<string, double>();
+}

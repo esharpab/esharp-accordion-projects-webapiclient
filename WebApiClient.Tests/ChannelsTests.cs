@@ -66,4 +66,18 @@ public class ChannelsTests
         await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(
             () => TestSetup.Client.Channels.GetChannelAsync(alias: "NonExistent.Channel.12345"));
     }
+
+    [TestMethod]
+    public async Task GetAll_GivesMultiplexersTheirDestinationNets()
+    {
+        var channels = await TestSetup.Client.Channels.GetAllAsync();
+        var muxes = channels.Where(c => c.ChannelType == Models.ChannelTypes.Multiplexer).ToList();
+
+        foreach (var m in muxes)
+            Console.WriteLine($"  {m.NetName}: {string.Join(", ", m.Details?.DestinationNets ?? [])}");
+
+        Assert.IsTrue(channels.Any(c => c.Details is not null), "Some channel has details");
+        foreach (var m in muxes)
+            Assert.IsNotNull(m.Details?.DestinationNets, $"{m.NetName} lists its destination nets");
+    }
 }

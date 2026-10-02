@@ -126,6 +126,14 @@ await client.Channels.ConfigureManyAsync(new List<ChannelConfigRequest>
 
 ---
 
+Each `ChannelDto` from `Channels.GetAllAsync()` has `Details` with the fields of its concrete type
+(null from firmware whose WebApi predates it). For example a multiplexer's choices:
+
+```csharp
+var wave = (await client.Channels.GetAllAsync()).First(c => c.NetName == "0.2.ESH10000560.GEN1_WAVE");
+Console.WriteLine(string.Join(", ", wave.Details?.DestinationNets ?? [])); // SINE, SQUARE, TRIANGLE, NOISE
+```
+
 ### `client.Modules` — Module management
 
 | Method | Description |

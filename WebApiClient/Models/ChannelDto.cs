@@ -20,4 +20,10 @@ public class ChannelDto
     public DirectionTypes DefaultDirection { get; set; }
     public string Unit { get; set; } = string.Empty;
     public bool IsVirtual { get; set; }
+
+    /// <summary>
+    /// The fields of the channel's concrete type, e.g. a multiplexer's destination nets or a digital
+    /// pin's push/pull type. Null for types without extra fields, and from firmware that predates it.
+    /// </summary>
+    public ChannelDetailsDto? Details { get; set; }
 }

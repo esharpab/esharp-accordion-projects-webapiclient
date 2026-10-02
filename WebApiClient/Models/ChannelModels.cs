@@ -55,4 +55,11 @@ public class ChannelConfigRequest
 
     /// <summary>Name of the device that provides this channel.</summary>
     public string? DeviceName { get; set; }
+
+    /// <summary>
+    /// Type-specific fields to change (accordionq2 contract section 7): set only the ones to change,
+    /// e.g. <c>new ChannelDetailsDto { Gain = 2 }</c>. Only the configurable fields of the channel's
+    /// type are accepted; the server refuses the request with the field's name otherwise.
+    /// </summary>
+    public ChannelDetailsDto? Details { get; set; }
 }

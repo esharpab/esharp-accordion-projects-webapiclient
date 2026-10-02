@@ -273,6 +273,30 @@ await client.Calibration.SetTableAsync("0.8.ESH10000590.CAL0", updated);
 
 ---
 
+### `client.Instruments` — Instrument channels
+
+Instruments (power supplies, meters and others) are Instrument channels whose **function map**
+names the channel behind each capability, for example `OUTPUT_VOLTAGE` → `0.4.ESH10000662.VSET1`.
+`Channels.GetAllAsync()` doesn't include the map; this does. Every key is optional.
+Needs firmware with `GET /api/instruments`; older firmware answers 404.
+
+| Method | Description |
+|---|---|
+| `GetAllAsync()` | Returns every Instrument channel as `List<InstrumentDto>`: type, instrument name and function map |
+
+```csharp
+// Set a power-supply output to 12 V with a 100 mA limit, then turn it on
+var supply = (await client.Instruments.GetAllAsync()).First(i => i.Type == "PowerSupply");
+await client.Resources.SetValuesAsync(new Dictionary<string, string>
+{
+    [supply.FunctionMap["OUTPUT_VOLTAGE"]] = "12",
+    [supply.FunctionMap["OUTPUT_CURRENTLIMIT"]] = "100",
+});
+await client.Resources.SetValueAsync(supply.FunctionMap["OUTPUT_ENABLE"], "True");
+```
+
+---
+
 ## Error Handling
 
 All methods throw `AccordionQ2ApiException` on non-success HTTP responses. The exception exposes the HTTP status code alongside the error message returned by the API.

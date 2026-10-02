@@ -47,6 +47,9 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>WebApi audit log operations.</summary>
     public AuditGroup Audit { get; }
 
+    /// <summary>Instrument channels with their type and function map.</summary>
+    public InstrumentsGroup Instruments { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -75,6 +78,7 @@ public sealed class AccordionQ2Client : IDisposable
         NumericResults = new NumericResultsGroup(_http);
         Calibration    = new CalibrationGroup(_http);
         Audit          = new AuditGroup(_http);
+        Instruments    = new InstrumentsGroup(_http);
     }
 
     /// <inheritdoc/>

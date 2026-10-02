@@ -59,6 +59,9 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>Value subscriptions, delivered on the event stream.</summary>
     public SubscriptionsGroup Subscriptions { get; }
 
+    /// <summary>The control lease: one client at a time may change the station.</summary>
+    public LeaseGroup Lease { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -90,6 +93,7 @@ public sealed class AccordionQ2Client : IDisposable
         Capabilities   = new CapabilitiesGroup(_http);
         Events         = new EventsGroup(_http);
         Subscriptions  = new SubscriptionsGroup(_http);
+        Lease          = new LeaseGroup(_http);
         Instruments    = new InstrumentsGroup(_http);
     }
 

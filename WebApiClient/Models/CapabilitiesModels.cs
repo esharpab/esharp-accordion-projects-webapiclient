@@ -59,6 +59,9 @@ public class ServerEventDto
     /// <summary>Values for a subscription (contract section 5.3); read the data as <see cref="ValuesEventDto"/>.</summary>
     public const string Values = "values";
 
+    /// <summary>The control lease was taken, released or ran out (contract section 5.5); data as <see cref="LeaseStateDto"/>.</summary>
+    public const string Lease = "lease";
+
     /// <summary>Increases by one per event within a stream; a gap means events were dropped.</summary>
     public long Id { get; set; }
 
@@ -122,4 +125,21 @@ public class ValuesEventDto
 
     /// <summary>Channels that couldn't be read this time, with why; null when all were.</summary>
     public Dictionary<string, string>? Errors { get; set; }
+}
+
+/// <summary>Who holds the control lease (contract section 5.5), from <c>GET /api/lease</c>.</summary>
+public class LeaseStateDto
+{
+    public bool Held { get; set; }
+    public string? Owner { get; set; }
+    public double ExpiresInMs { get; set; }
+    public DateTimeOffset? Since { get; set; }
+}
+
+/// <summary>A lease this client took or renewed.</summary>
+public class LeaseDto
+{
+    public string LeaseId { get; set; } = string.Empty;
+    public string? Owner { get; set; }
+    public double ExpiresInMs { get; set; }
 }

@@ -56,6 +56,9 @@ public class ServerEventDto
     /// <summary>Channels were added, removed or changed; reload them.</summary>
     public const string Configuration = "configuration";
 
+    /// <summary>Values for a subscription (contract section 5.3); read the data as <see cref="ValuesEventDto"/>.</summary>
+    public const string Values = "values";
+
     /// <summary>Increases by one per event within a stream; a gap means events were dropped.</summary>
     public long Id { get; set; }
 
@@ -81,6 +84,9 @@ public class StreamStateDto
     /// <summary>In <c>hello</c>.</summary>
     public int ApiVersion { get; set; }
 
+    /// <summary>In <c>hello</c>: the stream's id, for subscribing it to values. Null from a WebApi without subscriptions.</summary>
+    public string? StreamId { get; set; }
+
     /// <summary>In <c>configuration</c>: Added, Removed or Changed.</summary>
     public string? ChangeType { get; set; }
 }
@@ -93,4 +99,27 @@ public class ResourceValuesDto
 
     /// <summary>How old each value is in milliseconds; 0 when it was just read. Empty from a WebApi without the cache.</summary>
     public Dictionary<string, double> AgeMs { get; set; } = new Dictionary<string, double>();
+}
+
+/// <summary>A subscription as created or renewed (contract section 5.3).</summary>
+public class SubscriptionDto
+{
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>It ends unless renewed within this long.</summary>
+    public long ExpiresInMs { get; set; }
+}
+
+/// <summary>The data of a <c>values</c> event: one subscription's channels, keyed by the names it was given.</summary>
+public class ValuesEventDto
+{
+    public string Subscription { get; set; } = string.Empty;
+
+    public Dictionary<string, string> Values { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>How old each value is in milliseconds; 0 when it was just read.</summary>
+    public Dictionary<string, double> AgeMs { get; set; } = new Dictionary<string, double>();
+
+    /// <summary>Channels that couldn't be read this time, with why; null when all were.</summary>
+    public Dictionary<string, string>? Errors { get; set; }
 }

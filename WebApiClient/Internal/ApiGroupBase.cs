@@ -43,6 +43,12 @@ public abstract class ApiGroupBase
         return await ReadAsync<T>(response).ConfigureAwait(false);
     }
 
+    protected async Task<T> PutAsync<T>(string path, object? body = null, CancellationToken ct = default)
+    {
+        var response = await _http.PutAsync(path, Serialize(body), ct).ConfigureAwait(false);
+        return await ReadAsync<T>(response).ConfigureAwait(false);
+    }
+
     protected async Task PostMultipartAsync(string path, string fileName, byte[] data, CancellationToken ct = default)
     {
         using var form = new MultipartFormDataContent();

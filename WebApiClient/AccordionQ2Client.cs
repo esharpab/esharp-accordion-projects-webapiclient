@@ -56,6 +56,9 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>The event stream: connection and channel configuration changes.</summary>
     public EventsGroup Events { get; }
 
+    /// <summary>Value subscriptions, delivered on the event stream.</summary>
+    public SubscriptionsGroup Subscriptions { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -86,6 +89,7 @@ public sealed class AccordionQ2Client : IDisposable
         Audit          = new AuditGroup(_http);
         Capabilities   = new CapabilitiesGroup(_http);
         Events         = new EventsGroup(_http);
+        Subscriptions  = new SubscriptionsGroup(_http);
         Instruments    = new InstrumentsGroup(_http);
     }
 

@@ -10,6 +10,10 @@ public sealed class CommGroup : ApiGroupBase
 {
     internal CommGroup(HttpClient http) : base(http) { }
 
+    /// <summary>The I2C, SPI, UART and Socket channels transactions can be made on, with their settings.</summary>
+    public Task<List<BusDeviceDto>> GetDevicesAsync(CancellationToken ct = default)
+        => GetAsync<List<BusDeviceDto>>("api/comm/devices", ct);
+
     /// <summary>
     /// Performs an I2C bus transaction (Send, Receive, SendReceive, or Scan).
     /// </summary>

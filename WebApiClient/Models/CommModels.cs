@@ -68,7 +68,35 @@ public class UartTransactionRequest : BusTransactionRequestBase
 /// <summary>
 /// SPI bus transaction request.
 /// </summary>
-public class SpiTransactionRequest : BusTransactionRequestBase { }
+public class SpiTransactionRequest : BusTransactionRequestBase
+{
+    /// <summary>SPI mode; null uses the SPI channel's own.</summary>
+    public SpiModeTypes? Mode { get; set; }
+
+    /// <summary>Clock speed, in the unit of the channel's ClockSpeed; null uses the channel's own.</summary>
+    public int? ClockSpeed { get; set; }
+
+    /// <summary>Whether chip enable is active high; null uses the channel's own.</summary>
+    public bool? ChipEnableHigh { get; set; }
+}
+
+/// <summary>Mirrors <c>EsharpDefinitions.Types.DeviceDefinitions.SpiModeTypes</c>.</summary>
+public enum SpiModeTypes { Undefined = -1, Mode0 = 0, Mode1 = 1, Mode2 = 2, Mode3 = 3 }
+
+/// <summary>A bus channel transactions can be made on, from <c>GET /api/comm/devices</c>.</summary>
+public class BusDeviceDto
+{
+    /// <summary>Use it as a transaction's <c>DeviceName</c>.</summary>
+    public string NetName { get; set; } = string.Empty;
+    public string Alias { get; set; } = string.Empty;
+    /// <summary>I2C, SPI, UART or Socket.</summary>
+    public string Type { get; set; } = string.Empty;
+    /// <summary>The channel's device, e.g. the serial port.</summary>
+    public string DeviceName { get; set; } = string.Empty;
+    public bool Enabled { get; set; }
+    /// <summary>Its settings: clock speed, SPI mode, baud rate and so on.</summary>
+    public ChannelDetailsDto? Details { get; set; }
+}
 
 /// <summary>
 /// Socket (TCP/IP) bus transaction request.

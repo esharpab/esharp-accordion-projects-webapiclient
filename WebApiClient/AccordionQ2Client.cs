@@ -50,6 +50,12 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>Instrument channels with their type and function map.</summary>
     public InstrumentsGroup Instruments { get; }
 
+    /// <summary>What the WebApi supports: API and codec versions, features.</summary>
+    public CapabilitiesGroup Capabilities { get; }
+
+    /// <summary>The event stream: connection and channel configuration changes.</summary>
+    public EventsGroup Events { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -78,6 +84,8 @@ public sealed class AccordionQ2Client : IDisposable
         NumericResults = new NumericResultsGroup(_http);
         Calibration    = new CalibrationGroup(_http);
         Audit          = new AuditGroup(_http);
+        Capabilities   = new CapabilitiesGroup(_http);
+        Events         = new EventsGroup(_http);
         Instruments    = new InstrumentsGroup(_http);
     }
 

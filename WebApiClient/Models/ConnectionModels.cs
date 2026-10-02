@@ -8,4 +8,10 @@ public class ConnectionStatusDto
 
     /// <summary>Last connection error message, if any.</summary>
     public string? LastError { get; set; }
+
+    /// <summary>
+    /// Goes up each time the WebApi connects or reconnects to the hardware app; 0 from a WebApi that
+    /// predates it. Reload channels when it changes.
+    /// </summary>
+    public long Generation { get; set; }
 }

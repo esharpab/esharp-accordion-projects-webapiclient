@@ -38,7 +38,7 @@ public sealed class FirmwareGroup : ApiGroupBase
     public async Task<string> GetUpdateLogAsync(CancellationToken ct = default)
         => System.Text.Encoding.UTF8.GetString(await GetBytesAsync("api/system/firmware/update/log", ct));
 
-    /// <summary>Uploads a release package (a rel-&lt;version&gt;.zip), for a station that reaches no source.</summary>
+    /// <summary>Uploads a release package (a rel-&lt;version&gt;.zip), e.g. from a folder on the user's computer; 400 below the minimum version.</summary>
     public Task<FirmwareReleaseDto> UploadPackageAsync(byte[] zip, CancellationToken ct = default)
         => PostBytesAsync<FirmwareReleaseDto>("api/system/firmware/packages", zip, ct);
 

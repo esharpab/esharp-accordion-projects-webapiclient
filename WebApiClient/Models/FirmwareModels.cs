@@ -9,6 +9,8 @@ public sealed class FirmwareStateDto
     public string DefaultSource { get; set; } = string.Empty;
     /// <summary>False off a station (a WebApi on a development PC): updates answer 501.</summary>
     public bool Supported { get; set; }
+    /// <summary>The oldest version the WebApi installs (6.0.0): older releases have no browser GUI.</summary>
+    public string MinimumVersion { get; set; } = string.Empty;
     public FirmwareUpdateStatusDto Update { get; set; } = new();
 }
 
@@ -41,6 +43,8 @@ public sealed class FirmwareReleaseDto
     public bool Downloaded { get; set; }
     /// <summary><c>catalogue</c>, or <c>uploaded</c> for a package only the cache has.</summary>
     public string Origin { get; set; } = string.Empty;
+    /// <summary>False below <see cref="FirmwareStateDto.MinimumVersion"/>; installing it is refused.</summary>
+    public bool Installable { get; set; } = true;
 }
 
 public sealed class FirmwareUpdateStatusDto

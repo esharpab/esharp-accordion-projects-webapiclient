@@ -62,6 +62,12 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>The control lease: one client at a time may change the station.</summary>
     public LeaseGroup Lease { get; }
 
+    /// <summary>The station's services, reboot and clock (contract section 9).</summary>
+    public SystemGroup System { get; }
+
+    /// <summary>Files in the station's own folders (contract section 10).</summary>
+    public FilesGroup Files { get; }
+
     /// <summary>
     /// Creates a client that manages its own <see cref="HttpClient"/> lifetime.
     /// </summary>
@@ -94,6 +100,8 @@ public sealed class AccordionQ2Client : IDisposable
         Events         = new EventsGroup(_http);
         Subscriptions  = new SubscriptionsGroup(_http);
         Lease          = new LeaseGroup(_http);
+        System         = new SystemGroup(_http);
+        Files          = new FilesGroup(_http);
         Instruments    = new InstrumentsGroup(_http);
     }
 

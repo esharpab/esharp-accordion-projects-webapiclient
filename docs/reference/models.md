@@ -34,6 +34,7 @@ Partial-update request for `ConfigureAsync` / `ConfigureManyAsync`. Only non-nul
 | `Unit` | `string?` | Unit of measurement (e.g. `"V"`, `"°C"`, `"A"`) |
 | `GroupName` | `string?` | Logical group name |
 | `DeviceName` | `string?` | Name of the providing device |
+| `Details` | `ChannelDetailsDto?` | Type-specific fields to change (see [Channels](../api/channels.md#type-specific-fields-details)) |
 
 ### `NumericMeasureRequest`
 
@@ -94,6 +95,7 @@ No additional properties beyond the base class.
 |----------|------|-------------|
 | `IsConnected` | `bool` | `true` if the API is connected to the hardware manager |
 | `LastError` | `string?` | Last connection error message, if any |
+| `Generation` | `long` | Goes up each time the WebApi connects or reconnects to the hardware app; `0` from older firmware |
 
 ### `ChannelDto`
 
@@ -118,6 +120,7 @@ Full channel description returned by `ChannelsGroup.GetAllAsync` and `GetChannel
 | `Description` | `string` | Human-readable description |
 | `Unit` | `string` | Unit of measurement |
 | `IsVirtual` | `bool` | Whether this is a virtual (software-only) channel |
+| `Details` | `ChannelDetailsDto?` | Type-specific fields (see [Channels](../api/channels.md#type-specific-fields-details)) |
 
 ### `ModuleSettingsDto`
 
@@ -193,3 +196,22 @@ Full channel description returned by `ChannelsGroup.GetAllAsync` and `GetChannel
 | `Started` | `DateTime` | Acquisition start timestamp |
 | `Stopped` | `DateTime` | Acquisition stop timestamp |
 | `Duration` | `TimeSpan` | Total acquisition duration |
+
+---
+
+## Models on Other Pages
+
+The models of the newer groups are documented with their group:
+
+| Page | Models |
+|------|--------|
+| [Channels](../api/channels.md) | `ChannelDetailsDto`, `EncodedChannelsDto` |
+| [Resources](../api/resources.md) | `ResourceValuesDto` |
+| [Numeric Results](../api/numeric-results.md) | `NumericAcquisitionDto`, `NumericStatsDto` |
+| [Instruments](../api/instruments.md) | `InstrumentDto` |
+| [Capabilities](../api/capabilities.md) | `CapabilitiesDto` |
+| [Events and Subscriptions](../api/events.md) | `ServerEventDto`, `StreamStateDto`, `SubscriptionDto`, `ValuesEventDto` |
+| [Lease](../api/lease.md) | `LeaseStateDto`, `LeaseDto` |
+| [System](../api/system.md) | `ServiceStatusDto`, `ClockStatusDto`, `BootConfigDto`, `BootConfigUpdateDto` and the `Boot*Dto` sections |
+| [Files](../api/files.md) | `FileRootDto`, `FileListingDto`, `FileEntryDto` |
+| [Firmware](../api/firmware.md) | `FirmwareStateDto`, `FirmwareSourceDto`, `FirmwareReleasesDto`, `FirmwareReleaseDto`, `FirmwareUpdateStatusDto` |

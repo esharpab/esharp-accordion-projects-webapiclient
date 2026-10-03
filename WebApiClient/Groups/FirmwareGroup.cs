@@ -25,7 +25,10 @@ public sealed class FirmwareGroup : ApiGroupBase
 
     /// <summary>
     /// Starts installing <paramref name="version"/> and returns at once; follow <see cref="GetUpdateAsync"/>. The
-    /// hardware app and the WebApi restart, so this client loses the station for a minute or two.
+    /// hardware app and the WebApi restart, so this client loses the station for a minute or two. Refused at once
+    /// (400) below the minimum version, (409) while an update runs and (501) off a station; anything found after the
+    /// answer (an unknown version, a damaged download, a package not signed by E-Sharp) ends the update as
+    /// <c>failed</c>, with the reason in <see cref="FirmwareUpdateStatusDto.Message"/>.
     /// </summary>
     public Task<FirmwareUpdateStatusDto> StartUpdateAsync(string version, bool includeBeta = false, CancellationToken ct = default)
         => PostAsync<FirmwareUpdateStatusDto>("api/system/firmware/update", new { version, includeBeta }, ct);

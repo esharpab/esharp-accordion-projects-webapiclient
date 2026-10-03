@@ -10,6 +10,8 @@ Channels represent multi-purpose I/O pins (analog, digital, I2C, SPI, etc.).
 | `GetChannelAsync(alias?, netName?, ct?)` | `Task<ChannelDto>` | Look up one channel by alias or net name. |
 | `ConfigureAsync(config, ct?)` | `Task` | Partial-update a single channel. |
 | `ConfigureManyAsync(configs, ct?)` | `Task` | Partial-update multiple channels in one round-trip. |
+| `GetEncodedAsync(netName?, ct?)` | `Task<EncodedChannelsDto>` | Every channel, or one by net name, in the byte protocol's binary encoding. |
+| `ConfigureEncodedAsync(codecVersion, data, ct?)` | `Task<int>` | Configure whole channels sent in that encoding; returns how many were configured. |
 
 ## Examples
 
@@ -65,6 +67,63 @@ await client.Channels.ConfigureManyAsync(new List<ChannelConfigRequest>
 });
 ```
 
+### Type-Specific Fields (`Details`)
+
+Each `ChannelDto` from `GetAllAsync` and `GetChannelAsync` has `Details`: the fields of its concrete type that the base fields leave out, such as an analog channel's gain and offset, a digital pin's push/pull type or a multiplexer's choices. Only the fields that belong to the channel's type are set; the rest are null. `Details` itself is null for types without extra fields (Socket, ByteStream, Calibration and the media types), and from firmware that predates it.
+
+```csharp
+var wave = await client.Channels.GetChannelAsync(netName: "0.2.ESH10000560.GEN1_WAVE");
+Console.WriteLine(string.Join(", ", wave.Details?.DestinationNets ?? new string[0])); // SINE, SQUARE, TRIANGLE, ...
+
+// Set a multiplexer by writing one of its destination nets as the value
+await client.Resources.SetValueAsync(wave.NetName, "SQUARE");
+```
+
+Enum-like fields are strings (`"PushPull"`, `"Differential"`), so a value added in the hardware app doesn't break older clients. `DefaultValue` is a string in the resource-value format (`"True"`, `"1.25"`), whatever the type.
+
+To change type-specific fields, set `Details` on a `ChannelConfigRequest` with only the fields to change. Only the configurable fields of the channel's type are accepted (for example `Gain`, `Offset`, `InputConfiguration`, `DefaultValue` and `Resolution` on an analog channel); anything else is refused with 400 naming the field.
+
+```csharp
+await client.Channels.ConfigureAsync(new ChannelConfigRequest
+{
+    NetName = "0.1.ESH10000158.MON_3V3",
+    Details = new ChannelDetailsDto { Gain = 2.0, Offset = -0.01 },
+});
+```
+
+See `ChannelDetailsDto` in the client for the full list of fields, grouped by channel type.
+
+### Encoded Channels
+
+`GetEncodedAsync` and `ConfigureEncodedAsync` move channels in the binary encoding the byte protocol uses, as base64url text. They carry the full concrete channel objects, so type changes and every type-specific setting work, which the partial updates above can't do. Decoding the data needs EsharpDefinitions, which this package doesn't include:
+
+```csharp
+// With EsharpDefinitions referenced:
+// List<IMultiPurposeChannel> channels = SerializableHelpers.CreateFromBase64<TelemetryConfiguration>(encoded.Data).Channels;
+// string data = new TelemetryConfiguration(channels, TelemetryConfigurationTypes.Changed).AsBase64();
+```
+
+Check that the WebApi has the feature and the same codec version as yours first (see [Capabilities](capabilities.md)):
+
+```csharp
+var caps = await client.Capabilities.GetAsync();
+if (caps.Has(CapabilitiesDto.ChannelsEncoded))
+{
+    EncodedChannelsDto all = await client.Channels.GetEncodedAsync();
+    EncodedChannelsDto one = await client.Channels.GetEncodedAsync("0.1.ESH10000158.VOUT");
+    Console.WriteLine($"codec v{all.CodecVersion}, generation {all.Generation}, {all.Data.Length} chars");
+
+    // ... decode one.Data, change the channel, encode it again as newData ...
+    string newData = one.Data;
+    int configured = await client.Channels.ConfigureEncodedAsync(caps.CodecVersion, newData);
+}
+```
+
+- `GetEncodedAsync(netName)` matches net names only, not aliases; 404 for an unknown one.
+- `Generation` is the hardware-app session the channels came from (see [Events](events.md)).
+- `ConfigureEncodedAsync` throws `AccordionQ2ApiException` with 409 when `codecVersion` isn't the server's, 400 when `data` doesn't decode, and 500 with the hardware app's message.
+- Don't update local state from its result: reload channels on the `configuration` event instead.
+
 ## Request Model
 
 ### `ChannelConfigRequest`
@@ -82,6 +141,7 @@ Only non-null properties are applied. Supply `NetName` to locate by net name, `A
 | `Unit` | `string?` | Unit of measurement (e.g. `"V"`, `"°C"`, `"A"`) |
 | `GroupName` | `string?` | Logical group name |
 | `DeviceName` | `string?` | Name of the providing device |
+| `Details` | `ChannelDetailsDto?` | Type-specific fields to change; set only those to change |
 
 ## Response Model
 
@@ -106,3 +166,12 @@ Only non-null properties are applied. Supply `NetName` to locate by net name, `A
 | `Description` | `string` | Human-readable description |
 | `Unit` | `string` | Unit of measurement |
 | `IsVirtual` | `bool` | Whether this is a virtual (software-only) channel |
+| `Details` | `ChannelDetailsDto?` | Type-specific fields; null for types without any and from older firmware |
+
+### `EncodedChannelsDto`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `CodecVersion` | `int` | The server's codec version |
+| `Generation` | `long` | The hardware-app session the channels came from |
+| `Data` | `string` | A `TelemetryConfiguration` in base64url (EsharpDefinitions `SerializableHelpers.AsBase64`) |

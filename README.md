@@ -1,7 +1,7 @@
 # AccordionQ2.WebApiClient
 
 A .NET HTTP client library for the **AccordionQ2 Hardware Management REST API**.  
-Provides a strongly-typed, async-first interface for reading/writing resource values, configuring channels, managing modules, and controlling application lifecycle over HTTP.
+Provides a strongly-typed, async-first interface for reading/writing resource values, configuring channels, managing modules, and controlling application lifecycle over HTTP, as well as the event stream, value subscriptions, the control lease, the station's services and start-up configuration, its files, and signed firmware updates.
 
 ## Installation
 
@@ -43,20 +43,21 @@ await client.Channels.ConfigureAsync(new ChannelConfigRequest
 
 ## Documentation
 
-Comprehensive API documentation is available in the [`docs/`](docs/index.md) folder:
+Comprehensive API documentation is available in the [`docs/`](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/index.md) folder:
 
-- [Getting Started / Installation](docs/getting-started/installation.md)
-- [Quick Start](docs/getting-started/quickstart.md)
-- [API Overview](docs/api/overview.md) — all 9 operation groups at a glance
-- [Error Handling](docs/error-handling.md)
-- [Models Reference](docs/reference/models.md)
-- [Enums Reference](docs/reference/enums.md)
+- [Getting Started / Installation](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/getting-started/installation.md)
+- [Quick Start](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/getting-started/quickstart.md)
+- [API Overview](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/overview.md) — all 18 operation groups at a glance
+- Group pages: [Resources](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/resources.md), [Channels](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/channels.md), [Modules](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/modules.md), [Application](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/application.md), [Media](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/media.md), [Connection](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/connection.md), [Comm](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/comm.md), [Numeric Results](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/numeric-results.md), [Calibration](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/calibration.md), [Audit](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/audit.md), [Instruments](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/instruments.md), [Capabilities](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/capabilities.md), [Events and Subscriptions](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/events.md), [Lease](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/lease.md), [System](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/system.md), [Files](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/files.md), [Firmware](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/firmware.md)
+- [Error Handling](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/error-handling.md)
+- [Models Reference](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/reference/models.md)
+- [Enums Reference](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/reference/enums.md)
 
 ---
 
 ## API Reference
 
-`AccordionQ2Client` exposes eight operation groups:
+`AccordionQ2Client` exposes eighteen operation groups: `Resources`, `Channels`, `Modules`, `Application`, `Media`, `Connection`, `Comm`, `NumericResults`, `Calibration`, `Audit`, `Instruments`, `Capabilities`, `Events`, `Subscriptions`, `Lease`, `System`, `Files` and `Firmware`. The groups from `Instruments` on need a WebApi that has them; older firmware answers 404 (`Capabilities.GetAsync` returns `CapabilitiesDto.None` instead).
 
 ### `client.Resources` — Hardware resource values
 
@@ -69,6 +70,7 @@ Both **NetName** (e.g. `"0.23.ESH10000517.READ_TEMPERATURE"`) and **Alias** (e.g
 | `GetValueAsync(name)` | Reads the current value of a single resource |
 | `SetValueAsync(name, value)` | Writes a value to a single resource |
 | `GetValuesAsync(names[])` | Batch read — returns `Dictionary<string, string>` |
+| `ReadValuesAsync(names[], maxAgeMs)` | Batch read accepting cached values up to `maxAgeMs` old; returns `ResourceValuesDto` with each value's age |
 | `SetValuesAsync(dict)` | Batch write |
 | `TransactAsync(name, value)` | Write-then-read transaction (command/response pattern, e.g. EEPROM, register access) |
 
@@ -90,6 +92,8 @@ string response = await client.Resources.TransactAsync("Eeprom.Read", "0x0010");
 | `GetChannelAsync(alias, netName)` | Looks up a single channel by alias or net name |
 | `ConfigureAsync(request)` | Partial update for a single channel |
 | `ConfigureManyAsync(requests)` | Partial update for multiple channels in one round-trip |
+| `GetEncodedAsync(netName)` | Every channel, or one, in the byte protocol's binary encoding (`EncodedChannelsDto`) |
+| `ConfigureEncodedAsync(codecVersion, data)` | Configure whole channels sent in that encoding; returns how many were configured |
 
 Channel configuration uses partial updates — only non-null properties in `ChannelConfigRequest` are applied; everything else is left unchanged.
 
@@ -98,8 +102,7 @@ Channel configuration uses partial updates — only non-null properties in `Chan
 await client.Channels.ConfigureAsync(new ChannelConfigRequest
 {
     NetName   = "MPIO00",
-    Direction = DirectionTypes.OUT,
-    Value     = "2.5"
+    Direction = DirectionTypes.OUT
 });
 
 // Batch configure
@@ -123,8 +126,7 @@ await client.Channels.ConfigureManyAsync(new List<ChannelConfigRequest>
 | `Unit` | `string?` | Unit of measurement (e.g. `"V"`, `"°C"`, `"A"`) |
 | `GroupName` | `string?` | Logical group name |
 | `DeviceName` | `string?` | Name of the providing device |
-
----
+| `Details` | `ChannelDetailsDto?` | Type-specific fields to change, e.g. `new ChannelDetailsDto { Gain = 2 }` |
 
 Each `ChannelDto` from `Channels.GetAllAsync()` has `Details` with the fields of its concrete type
 (null from firmware whose WebApi predates it). For example a multiplexer's choices:
@@ -133,6 +135,8 @@ Each `ChannelDto` from `Channels.GetAllAsync()` has `Details` with the fields of
 var wave = (await client.Channels.GetAllAsync()).First(c => c.NetName == "0.2.ESH10000560.GEN1_WAVE");
 Console.WriteLine(string.Join(", ", wave.Details?.DestinationNets ?? [])); // SINE, SQUARE, TRIANGLE, NOISE
 ```
+
+---
 
 ### `client.Modules` — Module management
 
@@ -248,6 +252,25 @@ var uart = await client.Comm.UartAsync(new UartTransactionRequest
 
 ---
 
+### `client.NumericResults` — Fast numeric sampling
+
+| Method | Description |
+|---|---|
+| `AcquireAsync(channel, target, samples, lsl, usl)` | Acquire and return every sample with its statistics in one call (`NumericAcquisitionDto`) |
+| `GetChannelsAsync()` / `GetTargetsAsync(channel)` | NumericResult channels and what each can sample |
+| `MeasureAsync(request)` | Acquire, keeping the result on the server |
+| `GetMeanAsync` / `GetMinAsync` / `GetMaxAsync` / `GetStdDevAsync` / `GetSamplesAsync` | Read the kept result |
+
+---
+
+### `client.Audit` — WebApi audit log
+
+| Method | Description |
+|---|---|
+| `GetAuditLogAsync(tail = 100)` | The last `tail` lines of the request audit log; `0` for all |
+
+---
+
 ### `client.Calibration` — Calibration channel read/write
 
 Calibration channels carry a `CalibrationTable` encoded as a Base64 binary payload. The server
@@ -302,6 +325,96 @@ await client.Resources.SetValuesAsync(new Dictionary<string, string>
 });
 await client.Resources.SetValueAsync(supply.FunctionMap["OUTPUT_ENABLE"], "True");
 ```
+
+---
+
+### `client.Capabilities` — What the WebApi supports
+
+| Method | Description |
+|---|---|
+| `GetAsync()` | `CapabilitiesDto`: API, WebApi and codec versions and `Features`; `CapabilitiesDto.None` from a WebApi that predates it |
+
+```csharp
+var caps = await client.Capabilities.GetAsync();
+if (caps.Has(CapabilitiesDto.Events)) { /* the event stream is available */ }
+```
+
+---
+
+### `client.Events` and `client.Subscriptions` — Event stream and pushed values
+
+`Events.ListenAsync(onEvent, ct)` reads the server-sent event stream (`hello`, `connection`,
+`configuration`, `values`, `lease`) until cancelled; it throws `TimeoutException` or `IOException`
+when the stream dies, and reconnecting is the caller's. `Subscriptions` asks for channel values to
+arrive as `values` events on that stream.
+
+| Method | Description |
+|---|---|
+| `Events.ListenAsync(onEvent, ct)` | Calls `onEvent` for each `ServerEventDto`, in order |
+| `Subscriptions.CreateAsync(streamId, channels, intervalMs)` | Subscribe the stream (id from its `hello`) to channels, every 100 to 60 000 ms |
+| `Subscriptions.UpdateAsync(id, channels, intervalMs)` | Replace and renew; a subscription not renewed within `ExpiresInMs` ends |
+| `Subscriptions.DeleteAsync(id)` | End it |
+
+See [Events and Subscriptions](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/events.md) for a reconnecting listener.
+
+---
+
+### `client.Lease` — Control lease
+
+One client at a time may change the station. While another client holds the lease, changes and forced
+reads get `AccordionQ2ApiException` with 423. The holder sends its lease id with every request automatically.
+
+| Method | Description |
+|---|---|
+| `GetAsync()` | Who holds the lease (`LeaseStateDto`) |
+| `AcquireAsync(owner, ttlMs = 30000)` | Take it; 409 when someone else holds it |
+| `RenewAsync(ttlMs)` | Renew it before it runs out |
+| `ReleaseAsync()` | Release it |
+
+---
+
+### `client.System` — Services, reboot, clock and boot.config
+
+| Method | Description |
+|---|---|
+| `GetServicesAsync()` | The hardware app, the WebApi and the dashboard, with their systemd state |
+| `ServiceActionAsync(id, action)` | `start`, `stop`, `restart`, `enable` or `disable` a service |
+| `RebootAsync()` | Reboot the Pi; it is back after about a minute |
+| `GetClockAsync()` / `SetClockAsync(utc, force)` | Read or set the Pi's clock |
+| `GetBootAsync()` | The hardware app's start-up configuration (boot.config), without the Wi-Fi password |
+| `SetBootAsync(BootConfigUpdateDto)` | Edit boot.config: each section set replaces the file's; `IfModified` gives 409 instead of overwriting another edit |
+| `SetBootStartupAsync(enabled, aliasFiles)` | Change only whether boot.config is applied and which alias files load at start-up |
+
+boot.config changes apply at the hardware app's next start (alias files and modules also on reset).
+
+---
+
+### `client.Files` — Files in the station's folders
+
+| Method | Description |
+|---|---|
+| `GetRootsAsync()` | The folders reachable: `config`, `alias`, `fsms`, `media`, `extensions`, `logs`, `webapi-logs` |
+| `ListAsync(root, path)` | A folder's contents |
+| `DownloadAsync(root, path)` / `UploadAsync(root, path, data, overwrite)` | Read or write a file |
+| `CreateFolderAsync`, `MoveAsync`, `DeleteAsync` | Manage files and folders |
+
+---
+
+### `client.Firmware` — Firmware updates
+
+The station installs only releases signed by E-Sharp, and nothing below 6.0.0. Installing restarts the
+hardware app and the WebApi, so poll `GetUpdateAsync` and expect connection errors for a minute or two.
+
+| Method | Description |
+|---|---|
+| `GetStateAsync()` | Installed version, release source, minimum version, last update |
+| `GetReleasesAsync(includeBeta)` | Releases, newest first, with `Installable` and `Downloaded` |
+| `SetSourceAsync(location)` | Release source: an http(s) address, a folder on the Pi, or null for the default |
+| `StartUpdateAsync(version, includeBeta)` | Start installing; returns at once |
+| `GetUpdateAsync()` / `GetUpdateLogAsync()` | Follow the update |
+| `UploadPackageAsync(zip)` / `DeletePackageAsync(fileName)` | Add a package from this computer (for a station without internet) or remove one |
+
+See [Firmware](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/firmware.md) for a complete update with polling.
 
 ---
 

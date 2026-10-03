@@ -11,7 +11,7 @@ This is the .NET counterpart of the [Python WebApiClient](https://pypi.org/proje
 
 - **Strongly typed** &mdash; full C# model classes and enums for all request/response objects
 - **Async-first** &mdash; every method returns `Task` or `Task<T>` with `CancellationToken` support
-- **Full API coverage** &mdash; 8 operation groups covering all hardware management endpoints
+- **Full API coverage** &mdash; 18 operation groups covering the hardware management endpoints, events, the control lease, system settings, files and firmware updates
 - **HttpClient integration** &mdash; bring your own `HttpClient` (e.g. from `IHttpClientFactory`) or let the library manage one
 - **Cross-platform** &mdash; targets .NET Standard 2.0; works on .NET 5+, .NET Framework 4.6.1+, Mono, Xamarin
 
@@ -36,11 +36,19 @@ Console.WriteLine($"CPU temperature: {temp}");
 
 ## API Reference
 
-- [Overview](api/overview.md) &mdash; all 8 API groups at a glance
+- [Overview](api/overview.md) &mdash; all 18 API groups at a glance
 - [Resources](api/resources.md), [Channels](api/channels.md), [Modules](api/modules.md), [Application](api/application.md), [Media](api/media.md), [Connection](api/connection.md)
 - [Calibration](api/calibration.md) &mdash; calibration operations
 - [Comm (Bus Transactions)](api/comm.md) &mdash; I2C, UART, SPI, Socket
 - [Numeric Results](api/numeric-results.md) &mdash; high-speed sampling
+- [Audit](api/audit.md) &mdash; WebApi request audit log
+- [Instruments](api/instruments.md) &mdash; power supplies, meters and their function maps
+- [Capabilities](api/capabilities.md) &mdash; what the WebApi supports
+- [Events and Subscriptions](api/events.md) &mdash; the event stream and pushed channel values
+- [Lease](api/lease.md) &mdash; the control lease
+- [System](api/system.md) &mdash; services, reboot, clock and boot.config
+- [Files](api/files.md) &mdash; files in the station's folders
+- [Firmware](api/firmware.md) &mdash; signed firmware releases and updates
 
 ## Reference
 

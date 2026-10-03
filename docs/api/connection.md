@@ -26,3 +26,6 @@ else
 |----------|------|-------------|
 | `IsConnected` | `bool` | `true` if the API is connected to the hardware manager |
 | `LastError` | `string?` | Last connection error message, if any |
+| `Generation` | `long` | Goes up each time the WebApi connects or reconnects to the hardware app; `0` from a WebApi that predates it. Reload channels when it changes |
+
+To be told about connection changes instead of polling, listen to the [event stream](events.md).

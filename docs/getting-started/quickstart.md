@@ -137,4 +137,4 @@ catch (AccordionQ2ApiException ex)
 
 ## Next Steps
 
-Explore the full [API Reference](../api/overview.md) for detailed documentation of all 8 operation groups.
+Explore the full [API Reference](../api/overview.md) for detailed documentation of all 18 operation groups.

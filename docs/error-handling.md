@@ -31,8 +31,13 @@ catch (AccordionQ2ApiException ex)
 | HTTP Status | Meaning | Typical Cause |
 |-------------|---------|---------------|
 | 400 | Bad Request | Invalid parameters, or `GetSamplesAsync()` called after `ReducedSet = true` |
-| 404 | Not Found | Channel, resource, or config file does not exist |
+| 403 | Forbidden | A change in a read-only folder ([Files](api/files.md)) |
+| 404 | Not Found | Channel, resource, or config file does not exist; or a newer endpoint on older firmware |
+| 409 | Conflict | Someone else holds the [lease](api/lease.md); a codec version mismatch; a file that exists; boot.config changed since it was read; an update already running |
+| 423 | Locked | Another client holds the [lease](api/lease.md): changes and forced reads are refused |
 | 500 | Internal Server Error | Hardware manager encountered an error |
+| 501 | Not Implemented | System and firmware calls on a WebApi that isn't running on a station |
+| 503 | Service Unavailable | The WebApi isn't connected to the hardware app |
 | — | `HttpRequestException` | WebApi host is unreachable (connection refused, DNS failure, timeout) |
 
 > **Note:** Network-level errors (host unreachable, DNS failure, timeout) are thrown as `HttpRequestException` rather than `AccordionQ2ApiException`. Catch both when robustness is required.

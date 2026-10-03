@@ -6,6 +6,7 @@ NumericResult channels perform high-speed acquisition on physical channels, comp
 
 | Method | Returns | Description |
 |--------|---------|-------------|
+| `AcquireAsync(channel, target, samples = 1000, lsl?, usl?, ct?)` | `Task<NumericAcquisitionDto>` | Acquire and return the samples with their statistics in one call. |
 | `GetChannelsAsync(ct?)` | `Task<List<NumericResultChannelDto>>` | All NumericResult channels with sampling capabilities. |
 | `GetTargetsAsync(channelNetName, ct?)` | `Task<string[]>` | Physical channels that a NumericResult channel can sample. |
 | `MeasureAsync(request, ct?)` | `Task<NumericMeasureResultDto>` | Trigger an acquisition (result cached server-side). |
@@ -14,6 +15,26 @@ NumericResult channels perform high-speed acquisition on physical channels, comp
 | `GetMaxAsync(channelNetName, ct?)` | `Task<double>` | Maximum of the last measurement. |
 | `GetStdDevAsync(channelNetName, ct?)` | `Task<double>` | Standard deviation of the last measurement. |
 | `GetSamplesAsync(channelNetName, ct?)` | `Task<double[]>` | Raw sample array (only if `ReducedSet = false`). |
+
+## One-Call Acquisition
+
+`AcquireAsync` configures the NumericResult channel with the target and sample count, acquires, and returns every sample with the statistics in one call. It doesn't touch the cached result that `MeasureAsync` and the `Get…Async` statistics use. Give both spec limits (`lsl`, `usl`) to get `Cp` and `Cpk`.
+
+```csharp
+var acq = await client.NumericResults.AcquireAsync(
+    channel: "0.4.ESH10000662.NumericResult",
+    target:  "0.4.ESH10000662.VMON1",
+    samples: 1000,
+    lsl: 11.8, usl: 12.2);
+
+Console.WriteLine($"{acq.Samples.Length} samples at {acq.SampleRate} Hz in {acq.DurationMs:0} ms");
+Console.WriteLine($"mean={acq.Stats.Mean:F4} {acq.Unit}, stdev={acq.Stats.Stdev:F4}, Cpk={acq.Stats.Cpk:F2}");
+```
+
+- `samples` is 1 to 100 000, and `target` must be one of the channel's `PossibleTargetNames`; 400 otherwise. An acquisition longer than one call to the hardware app allows is refused with the largest sample count that fits.
+- Acquisitions on one channel run one at a time. The call takes about `samples / SampleRate` plus the usual time.
+- It reconfigures the channel, so while another client holds the [lease](lease.md) it is refused with 423.
+- Statistics the samples can't give (the deviation of a single sample) are null, never NaN.
 
 ## Typical Workflow
 
@@ -100,3 +121,31 @@ Console.WriteLine("First 5: " + string.Join(", ", samples.Take(5)));
 | `Started` | `DateTime` | Acquisition start timestamp |
 | `Stopped` | `DateTime` | Acquisition stop timestamp |
 | `Duration` | `TimeSpan` | Total acquisition duration |
+
+### `NumericAcquisitionDto`
+
+From `AcquireAsync`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Channel` | `string` | NumericResult channel used |
+| `Target` | `string` | Channel sampled |
+| `Unit` | `string` | The target channel's unit |
+| `SampleRate` | `int` | The sample rate the hardware reported, in Hz |
+| `Started` | `DateTime` | Acquisition start |
+| `DurationMs` | `double?` | How long the acquisition took |
+| `Samples` | `double[]` | Every sample |
+| `Stats` | `NumericStatsDto` | The statistics |
+
+### `NumericStatsDto`
+
+All but `Count` are `double?`, null where the samples can't give a value.
+
+| Property | Description |
+|----------|-------------|
+| `Count` | Number of samples (`int`) |
+| `Min`, `Max`, `Range` | Extremes and their difference |
+| `Mean`, `Median` | Central values |
+| `Stdev`, `Rms` | Standard deviation and root mean square |
+| `Skewness`, `Kurtosis` | Shape of the distribution |
+| `Cp`, `Cpk` | Process capability; set only when both `lsl` and `usl` were given |

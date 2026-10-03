@@ -12,6 +12,7 @@ Resources represent readable/writable hardware values such as voltages, temperat
 | `GetValueAsync(name, ct?)` | `Task<string>` | Read the current value of a single resource. |
 | `SetValueAsync(name, value, ct?)` | `Task` | Write a value to a single resource. |
 | `GetValuesAsync(names, ct?)` | `Task<Dictionary<string, string>>` | Read multiple resources in one round-trip. |
+| `ReadValuesAsync(names, maxAgeMs, ct?)` | `Task<ResourceValuesDto>` | Read multiple resources, accepting values read at most `maxAgeMs` ago; says how old each value is. |
 | `SetValuesAsync(resources, ct?)` | `Task` | Write multiple resources in one round-trip. |
 | `TransactAsync(name, value, ct?)` | `Task<string>` | Write then read (command/response pattern). |
 
@@ -56,6 +57,29 @@ await client.Resources.SetValuesAsync(new Dictionary<string, string>
 });
 ```
 
+### Reads with a Maximum Age
+
+The WebApi keeps the last value of each channel, fed by its own reads and writes and by every read and write other clients make. `ReadValuesAsync` returns a cached value no older than `maxAgeMs` as it is and reads the rest from the hardware in one call. Several GUIs or scripts polling the same channels then cost about one read.
+
+```csharp
+var r = await client.Resources.ReadValuesAsync(new[]
+{
+    "0.4.ESH10000662.VMON1",
+    "Engine.Uptime",
+}, maxAgeMs: 1000);
+
+foreach (var (name, value) in r.Resources)
+    Console.WriteLine($"{name} = {value} ({(r.AgeMs.TryGetValue(name, out var age) ? age : 0):0} ms old)");
+```
+
+- `maxAgeMs: 0` reads every value from the hardware, exactly as `GetValuesAsync` does.
+- `AgeMs` is 0 for a value that was just read. A WebApi without the cache reads every value and leaves `AgeMs` empty.
+- A failed hardware read fails the whole call (500).
+- Values whose read uses data up (bus receives, byte streams, numeric results) are never served from the cache.
+- While another client holds the [lease](lease.md), `GetValueAsync` and `GetValuesAsync` are refused with 423, but `ReadValuesAsync` with `maxAgeMs > 0` keeps working from the cache.
+
+To have values pushed instead of polling, use [subscriptions](events.md#subscriptions).
+
 ### Write-then-Read Transaction
 
 Useful for command/response patterns such as EEPROM or register access:
@@ -64,3 +88,12 @@ Useful for command/response patterns such as EEPROM or register access:
 string response = await client.Resources.TransactAsync("Eeprom.Read", "0x0010");
 Console.WriteLine($"Register value: {response}");
 ```
+
+## Models
+
+### `ResourceValuesDto`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Resources` | `Dictionary<string, string>` | Each requested name and its value |
+| `AgeMs` | `Dictionary<string, double>` | How old each value is in milliseconds; 0 when just read. Empty from a WebApi without the cache |

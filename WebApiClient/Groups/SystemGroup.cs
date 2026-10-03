@@ -37,4 +37,27 @@ public sealed class SystemGroup : ApiGroupBase
     /// </summary>
     public Task<ClockStatusDto> SetClockAsync(DateTimeOffset utc, bool force = false, CancellationToken ct = default)
         => PutAsync<ClockStatusDto>("api/system/clock", new { utc = utc.ToUniversalTime(), force }, ct);
+
+    /// <summary>The hardware app's start-up configuration (boot.config), without the Wi-Fi password.</summary>
+    public Task<BootConfigDto> GetBootAsync(CancellationToken ct = default)
+        => GetAsync<BootConfigDto>("api/system/boot", ct);
+
+    /// <summary>
+    /// Changes what the hardware app loads at its next start or reset: <paramref name="enabled"/> turns applying
+    /// boot.config on or off, <paramref name="aliasFiles"/> replaces the alias files, loaded in the order given.
+    /// Null leaves either as it is. Turning it on also applies the file's Wi-Fi, addresses, USB ports and modules.
+    /// </summary>
+    public Task<BootConfigDto> SetBootStartupAsync(bool? enabled, IEnumerable<BootAliasFileDto>? aliasFiles, CancellationToken ct = default)
+        => PutAsync<BootConfigDto>("api/system/boot/startup", new
+        {
+            enabled,
+            aliasFiles = aliasFiles?.Select(a => new { path = a.Path, enabled = a.Enabled }).ToList(),
+        }, ct);
+
+    /// <summary>
+    /// Edits boot.config: each section set in <paramref name="update"/> replaces the file's. Takes effect at the
+    /// hardware app's next start. Turning off the hardware app's or the WebApi's own service is refused (400).
+    /// </summary>
+    public Task<BootConfigDto> SetBootAsync(BootConfigUpdateDto update, CancellationToken ct = default)
+        => PutAsync<BootConfigDto>("api/system/boot", update, ct);
 }

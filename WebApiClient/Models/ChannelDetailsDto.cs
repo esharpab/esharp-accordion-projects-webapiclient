@@ -105,4 +105,15 @@ public class ChannelDetailsDto
     public int? ClockSpeed { get; set; }
     public string? Mode { get; set; }
     public bool? ChipEnableHigh { get; set; }
+
+    // Audio (SampleRate and Length, in seconds, above too): the device, and what a recording or playback uses
+    /// <summary>The audio device's name.</summary>
+    public string? Name { get; set; }
+    /// <summary>Volume in dB, within <see cref="MinVolumeDb"/> to <see cref="MaxVolumeDb"/>.</summary>
+    public double? Volume { get; set; }
+    public int[]? AllowedSampleRates { get; set; }
+    public int[]? AllowedChannels { get; set; }
+    public string[]? AllowedFormats { get; set; }
+    public double? MinVolumeDb { get; set; }
+    public double? MaxVolumeDb { get; set; }
 }

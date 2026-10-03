@@ -64,6 +64,8 @@ public sealed class AccordionQ2Client : IDisposable
 
     /// <summary>The station's services, reboot and clock (contract section 9).</summary>
     public SystemGroup System { get; }
+    /// <summary>Firmware: releases, the release source and updates (contract section 12).</summary>
+    public FirmwareGroup Firmware { get; }
 
     /// <summary>Files in the station's own folders (contract section 10).</summary>
     public FilesGroup Files { get; }
@@ -101,6 +103,7 @@ public sealed class AccordionQ2Client : IDisposable
         Subscriptions  = new SubscriptionsGroup(_http);
         Lease          = new LeaseGroup(_http);
         System         = new SystemGroup(_http);
+        Firmware       = new FirmwareGroup(_http);
         Files          = new FilesGroup(_http);
         Instruments    = new InstrumentsGroup(_http);
     }

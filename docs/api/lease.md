@@ -16,7 +16,7 @@ The control lease lets one client at a time change the station, typically a test
 
 > **Shared `HttpClient`:** the lease id is added to the `DefaultRequestHeaders` of the client's `HttpClient`. If you passed in an `HttpClient` that other code also uses, those requests carry the lease too.
 
-## Methods
+## Methods: Acquire, Renew and Release the Control Lease
 
 | Member | Returns | Description |
 |--------|---------|-------------|
@@ -82,7 +82,7 @@ catch (AccordionQ2ApiException ex) when (ex.StatusCode == 423)
 }
 ```
 
-## Not Bound by the Lease: Accordion Pilot
+## Pilot Is Not Bound by the Lease
 
 The lease is enforced by the WebApi only. Accordion Pilot talks to the station over the byte protocol, not the REST API, so it is not bound by the lease: it can change the station while someone holds it. Keep Pilot away from a station during a leased test sequence.
 

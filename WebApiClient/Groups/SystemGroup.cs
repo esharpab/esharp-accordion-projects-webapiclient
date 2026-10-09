@@ -11,7 +11,7 @@ public sealed class SystemGroup : ApiGroupBase
 {
     internal SystemGroup(HttpClient http) : base(http) { }
 
-    /// <summary>The hardware app, the WebApi and the dashboard, with their state.</summary>
+    /// <summary>The hardware app and the WebApi, with their state.</summary>
     public Task<List<ServiceStatusDto>> GetServicesAsync(CancellationToken ct = default)
         => GetAsync<List<ServiceStatusDto>>("api/system/services", ct);
 

@@ -10,7 +10,7 @@ The station's services, reboot, clock, and the hardware app's start-up configura
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `GetServicesAsync(ct?)` | `Task<List<ServiceStatusDto>>` | The hardware app, the WebApi and the dashboard, with their state. |
+| `GetServicesAsync(ct?)` | `Task<List<ServiceStatusDto>>` | The hardware app and the WebApi, with their state. |
 | `ServiceActionAsync(id, action, ct?)` | `Task` | `start`, `stop`, `restart`, `enable` or `disable` a service. |
 | `RebootAsync(ct?)` | `Task` | Reboot the Pi a second after answering. |
 | `GetClockAsync(ct?)` | `Task<ClockStatusDto>` | The Pi's clock. |
@@ -21,7 +21,7 @@ The station's services, reboot, clock, and the hardware app's start-up configura
 
 ## Services
 
-The services are `hardware` (the hardware app), `webapi` (the WebApi and the browser GUI) and `dashboard` (Node-RED).
+The services are `hardware` (the hardware app) and `webapi` (the WebApi and the browser GUI).
 
 ```csharp
 foreach (var s in await client.System.GetServicesAsync())
@@ -142,7 +142,7 @@ A module keeps what the API doesn't show (its image name and initial data) as lo
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `Id` | `string` | `hardware`, `webapi` or `dashboard` |
+| `Id` | `string` | `hardware` or `webapi` |
 | `Unit` | `string` | The systemd unit, e.g. `accordion.service` |
 | `Description` | `string` | The unit's description |
 | `Installed` | `bool` | False when the Pi doesn't have the unit |

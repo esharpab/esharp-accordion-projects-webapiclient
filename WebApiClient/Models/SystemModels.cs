@@ -1,9 +1,9 @@
 namespace AccordionQ2.WebApiClient.Models;
 
-/// <summary>A service on the station (contract section 9): the hardware app, the WebApi or the dashboard.</summary>
+/// <summary>A service on the station (contract section 9): the hardware app or the WebApi.</summary>
 public sealed class ServiceStatusDto
 {
-    /// <summary><c>hardware</c>, <c>webapi</c> or <c>dashboard</c>.</summary>
+    /// <summary><c>hardware</c> or <c>webapi</c>.</summary>
     public string Id { get; set; } = string.Empty;
     /// <summary>The systemd unit, e.g. <c>accordion.service</c>.</summary>
     public string Unit { get; set; } = string.Empty;

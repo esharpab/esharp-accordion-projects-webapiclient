@@ -377,7 +377,7 @@ reads get `AccordionQ2ApiException` with 423. The holder sends its lease id with
 
 | Method | Description |
 |---|---|
-| `GetServicesAsync()` | The hardware app, the WebApi and the dashboard, with their systemd state |
+| `GetServicesAsync()` | The hardware app and the WebApi, with their systemd state |
 | `ServiceActionAsync(id, action)` | `start`, `stop`, `restart`, `enable` or `disable` a service |
 | `RebootAsync()` | Reboot the Pi; it is back after about a minute |
 | `GetClockAsync()` / `SetClockAsync(utc, force)` | Read or set the Pi's clock |

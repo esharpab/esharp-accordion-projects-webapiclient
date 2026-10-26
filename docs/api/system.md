@@ -10,7 +10,7 @@ The station's services, reboot, clock, and the hardware app's start-up configura
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `GetServicesAsync(ct?)` | `Task<List<ServiceStatusDto>>` | The hardware app and the WebApi, with their state. |
+| `GetServicesAsync(ct?)` | `Task<List<ServiceStatusDto>>` | The station's services, with their state. |
 | `ServiceActionAsync(id, action, ct?)` | `Task` | `start`, `stop`, `restart`, `enable` or `disable` a service. |
 | `RebootAsync(ct?)` | `Task` | Reboot the Pi a second after answering. |
 | `GetClockAsync(ct?)` | `Task<ClockStatusDto>` | The Pi's clock. |
@@ -21,14 +21,14 @@ The station's services, reboot, clock, and the hardware app's start-up configura
 
 ## Services
 
-The services are `hardware` (the hardware app) and `webapi` (the WebApi and the browser GUI).
+From 7.0 a station has one service, `webapi`: the WebApi, the browser GUI and the hardware engine, in one process. Restarting it restarts the hardware too. A 6.x station has two: `hardware` (the separate hardware app) and `webapi` (the WebApi and the browser GUI).
 
 ```csharp
 foreach (var s in await client.System.GetServicesAsync())
     Console.WriteLine($"{s.Id,-10} {s.Unit,-28} {s.ActiveState}/{s.SubState} boot={s.Enabled} actions={string.Join(",", s.Actions)}");
 
-// Restart the hardware app; the call doesn't wait for systemd
-await client.System.ServiceActionAsync("hardware", "restart");
+// Restart the station (on 6.x, "hardware" restarts only the hardware app); the call doesn't wait for systemd
+await client.System.ServiceActionAsync("webapi", "restart");
 ```
 
 - `start`, `stop` and `restart` don't wait for the job to finish; follow `GetServicesAsync` to see it happen. `enable` and `disable` change whether the service starts at boot.
@@ -62,7 +62,7 @@ if (!clock.NtpSynchronized)
 
 `boot.config` on the station says what the hardware app applies when it starts: the services to run, the Wi-Fi, static IP addresses, USB ports, the modules to load and the alias files to load, in order.
 
-- **Changes apply at the hardware app's next start.** Alias files and modules are also applied again on every reset of the engine (`Application.ResetAsync`).
+- **Changes apply at the hardware's next start**: from 7.0 a restart of `webapi`, on 6.x of `hardware`. Alias files and modules are also applied again on every reset of the engine (`Application.ResetAsync`).
 - With `Enabled == false` only `Services` are applied; Wi-Fi, addresses, USB ports, modules and alias files are not.
 - The Wi-Fi password is never returned, only `Wifi.PasswordSet`.
 - `ProtectedServices` lists the hardware app's and the WebApi's own units. Turning one off is refused with 400: the hardware app stops and disables a service marked off at every start, which would leave SSH as the only way back in.
@@ -142,8 +142,8 @@ A module keeps what the API doesn't show (its image name and initial data) as lo
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `Id` | `string` | `hardware` or `webapi` |
-| `Unit` | `string` | The systemd unit, e.g. `accordion.service` |
+| `Id` | `string` | `webapi`; on 6.x also `hardware` |
+| `Unit` | `string` | The systemd unit, e.g. `accordionq2-webapi.service` |
 | `Description` | `string` | The unit's description |
 | `Installed` | `bool` | False when the Pi doesn't have the unit |
 | `ActiveState` | `string` | systemd's state: `active`, `inactive`, `failed`, `activating`, `deactivating` |

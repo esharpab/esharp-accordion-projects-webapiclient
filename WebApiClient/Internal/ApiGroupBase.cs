@@ -61,6 +61,14 @@ public abstract class ApiGroupBase
         return await ReadAsync<T>(response).ConfigureAwait(false);
     }
 
+    protected async Task<T> PostStreamAsync<T>(string path, Stream data, CancellationToken ct = default)
+    {
+        var content = new StreamContent(data);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        using var response = await SendAsync(HttpMethod.Post, path, content, ct).ConfigureAwait(false);
+        return await ReadAsync<T>(response).ConfigureAwait(false);
+    }
+
     protected async Task PostMultipartAsync(string path, string fileName, byte[] data, CancellationToken ct = default)
     {
         var form = new MultipartFormDataContent();

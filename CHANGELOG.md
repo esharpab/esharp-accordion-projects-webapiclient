@@ -5,6 +5,18 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- `Channels.UploadByteStreamAsync(name, stream | path, target, force)`: streams a file to a ByteStream file channel
+  (`POST /api/channels/bytestream`, firmware 7.0.5), e.g. an FPGA image to MicroHAPS's `JTAG.FPGA_IMAGE`, loaded
+  into the KU5P's SRAM by openFPGALoader without Vivado. The stream is sent as it is read, not buffered whole.
+- `Channels.GetByteStreamStatusAsync(name)` and `Channels.WaitByteStreamAsync(name, timeout)`: the load's state,
+  progress and result, and the last image's name, size and SHA-256 (`ByteStreamStatusDto`, `ByteStreamImageDto`).
+
+---
+
 ## [7.0.0] – 2026-10-28
 
 Secured stations (FW7 CLI-01): an API key, HTTPS with a pinned certificate, and IPv6 addresses.

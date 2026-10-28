@@ -12,6 +12,12 @@ public class CapabilitiesDto
     /// <summary>Feature name: the station checks API keys (<c>X-Api-Key</c>) as <see cref="SecurityMode"/> says.</summary>
     public const string SecurityApiKey = "security.apikey";
 
+    /// <summary>
+    /// Feature name: <c>POST /api/resources/values/get</c> takes <c>cacheOnly</c>
+    /// (<see cref="Groups.ResourcesGroup.ReadCachedValuesAsync"/>). A WebApi without it ignores the field and reads.
+    /// </summary>
+    public const string ValuesCacheOnly = "values.cacheOnly";
+
     /// <summary>The contract version; 0 for a WebApi that predates it.</summary>
     public int ApiVersion { get; set; }
 
@@ -112,6 +118,13 @@ public class ResourceValuesDto
 
     /// <summary>How old each value is in milliseconds; 0 when it was just read. Empty from a WebApi without the cache.</summary>
     public Dictionary<string, double> AgeMs { get; set; } = new Dictionary<string, double>();
+
+    /// <summary>
+    /// From <see cref="Groups.ResourcesGroup.ReadCachedValuesAsync"/>: the names the cache had no value for, fresh enough,
+    /// in the order asked; they are in neither <see cref="Resources"/> nor <see cref="AgeMs"/>. Empty when every name was
+    /// cached; null from every other read.
+    /// </summary>
+    public string[]? NotCached { get; set; }
 }
 
 /// <summary>A subscription as created or renewed (contract section 5.3).</summary>

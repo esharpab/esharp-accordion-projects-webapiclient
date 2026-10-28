@@ -13,6 +13,16 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   and `Details`, so an MPIO switched from input to output starts at that level instead of the last value read
   while it was an input. A string as `Resources.SetValueAsync` takes it (`"1.8"`, `"True"`); `WithValue(double)`
   and `WithValue(bool)` format it (invariant culture). Left out of the request when null.
+- **Cache-only reads**: `Resources.ReadCachedValuesAsync(names, maxAgeMs = 0)` sends `values/get` with
+  `cacheOnly` (firmware 7.0.5 or later). The station answers from its value cache alone, never reads the
+  hardware and never refuses it under the lease. A name with no cached value at most `maxAgeMs` old (any age
+  for 0), and every channel whose reads consume data, is in the new `ResourceValuesDto.NotCached` instead of
+  `Resources`. The call checks `CapabilitiesDto.ValuesCacheOnly` (`"values.cacheOnly"`) first, because an older
+  WebApi ignores the field and reads; without it, `NotSupportedException` and no values are asked for. The check
+  is kept for 60 s (`ResourcesGroup.CapabilityCheckLifetime`) and redone after any failed call, so a station
+  rolled back to older firmware is caught; and "any age" (`maxAgeMs` 0) is sent as `int.MaxValue` ms, so such a
+  station would answer from its cache rather than force a read of every name.
+  Existing calls send and return what they did (`NotCached` is null for them).
 
 ### Compatibility
 

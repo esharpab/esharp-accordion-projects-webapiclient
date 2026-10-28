@@ -19,7 +19,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </remarks>
 public sealed class InstrumentsGroup : ApiGroupBase
 {
-    internal InstrumentsGroup(HttpClient http) : base(http) { }
+    internal InstrumentsGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>Returns every Instrument channel with its type and function map.</summary>
     public Task<List<InstrumentDto>> GetAllAsync(CancellationToken ct = default)

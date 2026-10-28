@@ -7,7 +7,7 @@ namespace AccordionQ2.WebApiClient.Internal;
 
 public abstract class ApiGroupBase
 {
-    protected readonly HttpClient _http;
+    private protected readonly ApiTransport _transport;
 
     private static readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
     {
@@ -16,69 +16,76 @@ public abstract class ApiGroupBase
         MissingMemberHandling = MissingMemberHandling.Ignore
     };
 
-    protected ApiGroupBase(HttpClient http) => _http = http;
+    private protected ApiGroupBase(ApiTransport transport) => _transport = transport;
 
     protected async Task<T> GetAsync<T>(string path, CancellationToken ct = default)
     {
-        var response = await _http.GetAsync(path, ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Get, path, null, ct).ConfigureAwait(false);
         return await ReadAsync<T>(response).ConfigureAwait(false);
     }
 
     protected async Task<byte[]> GetBytesAsync(string path, CancellationToken ct = default)
     {
-        var response = await _http.GetAsync(path, ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Get, path, null, ct).ConfigureAwait(false);
         await EnsureSuccessAsync(response).ConfigureAwait(false);
         return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
     }
 
     protected async Task PostAsync(string path, object? body = null, CancellationToken ct = default)
     {
-        var response = await _http.PostAsync(path, Serialize(body), ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Post, path, Serialize(body), ct).ConfigureAwait(false);
         await EnsureSuccessAsync(response).ConfigureAwait(false);
     }
 
     protected async Task<T> PostAsync<T>(string path, object? body = null, CancellationToken ct = default)
     {
-        var response = await _http.PostAsync(path, Serialize(body), ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Post, path, Serialize(body), ct).ConfigureAwait(false);
         return await ReadAsync<T>(response).ConfigureAwait(false);
     }
 
     protected async Task<T> PutAsync<T>(string path, object? body = null, CancellationToken ct = default)
     {
-        var response = await _http.PutAsync(path, Serialize(body), ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Put, path, Serialize(body), ct).ConfigureAwait(false);
         return await ReadAsync<T>(response).ConfigureAwait(false);
     }
 
     protected async Task<T> PutBytesAsync<T>(string path, byte[] data, CancellationToken ct = default)
     {
-        var content = new ByteArrayContent(data);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        var response = await _http.PutAsync(path, content, ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Put, path, Bytes(data), ct).ConfigureAwait(false);
         return await ReadAsync<T>(response).ConfigureAwait(false);
     }
 
     protected async Task<T> PostBytesAsync<T>(string path, byte[] data, CancellationToken ct = default)
     {
-        var content = new ByteArrayContent(data);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        var response = await _http.PostAsync(path, content, ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Post, path, Bytes(data), ct).ConfigureAwait(false);
         return await ReadAsync<T>(response).ConfigureAwait(false);
     }
 
     protected async Task PostMultipartAsync(string path, string fileName, byte[] data, CancellationToken ct = default)
     {
-        using var form = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(data);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        form.Add(fileContent, "file", fileName);
-        var response = await _http.PostAsync(path, form, ct).ConfigureAwait(false);
+        var form = new MultipartFormDataContent();
+        form.Add(Bytes(data), "file", fileName);
+        using var response = await SendAsync(HttpMethod.Post, path, form, ct).ConfigureAwait(false);
         await EnsureSuccessAsync(response).ConfigureAwait(false);
     }
 
     protected async Task DeleteAsync(string path, CancellationToken ct = default)
     {
-        var response = await _http.DeleteAsync(path, ct).ConfigureAwait(false);
+        using var response = await SendAsync(HttpMethod.Delete, path, null, ct).ConfigureAwait(false);
         await EnsureSuccessAsync(response).ConfigureAwait(false);
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, HttpContent? content, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(method, path) { Content = content };
+        return await _transport.SendAsync(request, ct).ConfigureAwait(false);
+    }
+
+    private static ByteArrayContent Bytes(byte[] data)
+    {
+        var content = new ByteArrayContent(data);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        return content;
     }
 
     private static StringContent? Serialize(object? body)
@@ -88,21 +95,17 @@ public abstract class ApiGroupBase
         return new StringContent(json, Encoding.UTF8, "application/json");
     }
 
-    private static async Task<T> ReadAsync<T>(HttpResponseMessage response)
+    private async Task<T> ReadAsync<T>(HttpResponseMessage response)
     {
         await EnsureSuccessAsync(response).ConfigureAwait(false);
         var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         return JsonConvert.DeserializeObject<T>(json, _serializerSettings)!;
     }
 
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response)
+    private async Task EnsureSuccessAsync(HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode) return;
         var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        string? message = null;
-        try { message = JsonConvert.DeserializeObject<ErrorBody>(body, _serializerSettings)?.Error; } catch { }
-        throw new AccordionQ2ApiException((int)response.StatusCode, message ?? body);
+        throw _transport.CreateError((int)response.StatusCode, body);
     }
-
-    private sealed class ErrorBody { public string? Error { get; set; } }
 }

@@ -7,7 +7,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class AuditGroup : ApiGroupBase
 {
-    internal AuditGroup(HttpClient http) : base(http) { }
+    internal AuditGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>
     /// Returns the last <paramref name="tail"/> lines of the WebApi audit log.

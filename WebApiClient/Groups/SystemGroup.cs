@@ -9,7 +9,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class SystemGroup : ApiGroupBase
 {
-    internal SystemGroup(HttpClient http) : base(http) { }
+    internal SystemGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>The hardware app and the WebApi, with their state.</summary>
     public Task<List<ServiceStatusDto>> GetServicesAsync(CancellationToken ct = default)

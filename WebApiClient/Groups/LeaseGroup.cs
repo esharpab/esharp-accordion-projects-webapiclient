@@ -15,7 +15,7 @@ public sealed class LeaseGroup : ApiGroupBase
 {
     public const string HeaderName = "X-Lease-Id";
 
-    internal LeaseGroup(HttpClient http) : base(http) { }
+    internal LeaseGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>The lease this client holds, if any.</summary>
     public string? HeldLeaseId { get; private set; }
@@ -55,8 +55,6 @@ public sealed class LeaseGroup : ApiGroupBase
     private void Use(string? leaseId)
     {
         HeldLeaseId = leaseId;
-        _http.DefaultRequestHeaders.Remove(HeaderName);
-        if (leaseId is not null)
-            _http.DefaultRequestHeaders.Add(HeaderName, leaseId);
+        _transport.LeaseId = leaseId; // per request, so a caller's shared HttpClient isn't changed
     }
 }

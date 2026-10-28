@@ -14,7 +14,7 @@ The control lease lets one client at a time change the station, typically a test
 - Cached reads (`Resources.ReadValuesAsync` with `maxAgeMs > 0`) and [subscriptions](events.md#subscriptions) keep working for everyone, but don't make the hardware read channels whose read changes something; those values come from the cache, however old. Look at `AgeMs`.
 - Every change of the lease is announced as a `lease` event on the [event stream](events.md).
 
-> **Shared `HttpClient`:** the lease id is added to the `DefaultRequestHeaders` of the client's `HttpClient`. If you passed in an `HttpClient` that other code also uses, those requests carry the lease too.
+> **Shared `HttpClient`:** the lease id is added to each of this client's requests, not to the `HttpClient`'s `DefaultRequestHeaders`. If you passed in an `HttpClient` that other code also uses, its requests don't carry the lease. Since 7.0; before, the lease id went into `DefaultRequestHeaders`.
 
 ## Methods: Acquire, Renew and Release the Control Lease
 

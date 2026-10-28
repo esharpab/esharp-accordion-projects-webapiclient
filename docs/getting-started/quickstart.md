@@ -18,12 +18,22 @@ var client = new AccordionQ2Client("http://agent64.local:5000");
 
 // Bring your own HttpClient (e.g. from IHttpClientFactory)
 var client = new AccordionQ2Client("http://agent64.local:5000", httpClient);
+
+// An API key and a pinned HTTPS certificate (and optionally your own HttpClient or handler)
+var client = new AccordionQ2Client("https://agent64.local:5001", new AccordionQ2ClientOptions
+{
+    ApiKey            = Environment.GetEnvironmentVariable("ACCORDION_API_KEY"),
+    CertificateSha256 = "3F:A2:7C:...:9C",
+});
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `baseUrl` | `string` | Base URL of the AccordionQ2 WebApi, e.g. `"http://raspberrypi:5000"` |
+| `baseUrl` | `string` | Base URL of the AccordionQ2 WebApi, e.g. `"http://raspberrypi:5000"`, `"https://[::1]:5001"` or `"http://[fe80::1%eth0]:5000"` |
 | `httpClient` | `HttpClient?` | Pre-configured HTTP client. Pass `null` to create one internally. |
+| `options` | `AccordionQ2ClientOptions` | `ApiKey`, `CertificateSha256`, `TrustedCaCertificate`, `HttpClient`, `Handler`: see [Security](../security.md) |
+
+> **Note (7.0):** `new AccordionQ2Client(url, null)` no longer compiles, since `null` fits both two-argument constructors. Write `new AccordionQ2Client(url)`, or `(HttpClient?)null`.
 
 ### Disposing the Client
 

@@ -22,6 +22,7 @@ The WebApi pushes events to clients over one long-lived HTTP connection (`GET /a
 | Exception | When |
 |-----------|------|
 | `AccordionQ2ApiException` | The stream couldn't be opened (404 for a WebApi without it) |
+| `AccordionQ2SecurityException` | The station refused the stream: no or an unknown API key (401), or a role below `Viewer` (403); see [Security](../security.md). The client sends its `ApiKey` on the stream as on every request |
 | `TimeoutException` | No data for `SilenceLimit` |
 | `IOException` | The server ended the stream, e.g. because the WebApi restarted |
 | `HttpRequestException` | The host can't be reached |

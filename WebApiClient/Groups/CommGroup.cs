@@ -8,7 +8,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class CommGroup : ApiGroupBase
 {
-    internal CommGroup(HttpClient http) : base(http) { }
+    internal CommGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>The I2C, SPI, UART and Socket channels transactions can be made on, with their settings.</summary>
     public Task<List<BusDeviceDto>> GetDevicesAsync(CancellationToken ct = default)

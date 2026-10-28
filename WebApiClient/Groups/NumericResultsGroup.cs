@@ -31,7 +31,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </remarks>
 public sealed class NumericResultsGroup : ApiGroupBase
 {
-    internal NumericResultsGroup(HttpClient http) : base(http) { }
+    internal NumericResultsGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>Returns all NumericResult channels with their sampling capabilities.</summary>
     /// <summary>

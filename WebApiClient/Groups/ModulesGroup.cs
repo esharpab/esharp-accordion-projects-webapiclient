@@ -6,7 +6,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// <summary>Operations for managing hardware and software modules.</summary>
 public sealed class ModulesGroup : ApiGroupBase
 {
-    internal ModulesGroup(HttpClient http) : base(http) { }
+    internal ModulesGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>Returns all available modules (loaded and unloaded).</summary>
     public Task<List<ModuleSettingsDto>> GetAllAsync(CancellationToken ct = default)

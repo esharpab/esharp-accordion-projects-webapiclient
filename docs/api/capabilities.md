@@ -2,7 +2,7 @@
 
 What the WebApi on a station supports: the contract version, its build version, the channel codec version, and a list of features. Use it to decide whether a newer call is available before making it.
 
-The server answers without calling the hardware app, so this works while the hardware app is disconnected too.
+The server answers without calling the hardware app, so this works while the hardware app is disconnected too. It needs no API key, so a client can learn the security mode before it has one.
 
 ## Methods
 
@@ -40,6 +40,7 @@ else
 | `WebApiVersion` | `string` | The WebApi build's informational version, e.g. `"5.15.0"` |
 | `CodecVersion` | `int` | The server's channel codec version (EsharpDefinitions `ChannelFactory.CodecVersion`); compare it with your own before using [encoded channels](channels.md#encoded-channels) |
 | `Features` | `string[]` | The supported features |
+| `SecurityMode` | `string` | `"Off"`, `"Report"` or `"On"`: how the station treats a request without a valid API key ([Security](../security.md)); `"Off"` from a WebApi that predates it. A string, so a mode added later doesn't break reading |
 
 | Member | Description |
 |--------|-------------|
@@ -52,5 +53,6 @@ else
 |----------|-------|-------|
 | `CapabilitiesDto.ChannelsEncoded` | `"channels.encoded"` | `Channels.GetEncodedAsync` and `Channels.ConfigureEncodedAsync` work |
 | `CapabilitiesDto.Events` | `"events"` | The [event stream](events.md) works |
+| `CapabilitiesDto.SecurityApiKey` | `"security.apikey"` | The station checks API keys as `SecurityMode` says ([Security](../security.md)) |
 
 The server may list other features too, for example `"instruments"`; `Has` takes any string.

@@ -9,6 +9,9 @@ public class CapabilitiesDto
     /// <summary>Feature name: <c>GET /api/events</c>.</summary>
     public const string Events = "events";
 
+    /// <summary>Feature name: the station checks API keys (<c>X-Api-Key</c>) as <see cref="SecurityMode"/> says.</summary>
+    public const string SecurityApiKey = "security.apikey";
+
     /// <summary>The contract version; 0 for a WebApi that predates it.</summary>
     public int ApiVersion { get; set; }
 
@@ -20,6 +23,13 @@ public class CapabilitiesDto
 
     /// <summary>The supported features. Decide by these, not by version numbers.</summary>
     public string[] Features { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// How the station treats requests without a valid key: <c>Off</c> (nothing is checked), <c>Report</c>
+    /// (everything goes through; what <c>On</c> would refuse is logged) or <c>On</c> (refused with 401/403).
+    /// <c>Off</c> from a WebApi that predates it. A string, so a mode added later doesn't break reading.
+    /// </summary>
+    public string SecurityMode { get; set; } = "Off";
 
     /// <summary>Whether the WebApi has <paramref name="feature"/>, e.g. <see cref="Events"/>.</summary>
     public bool Has(string feature) => Array.IndexOf(Features, feature) >= 0;

@@ -9,7 +9,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class FirmwareGroup : ApiGroupBase
 {
-    internal FirmwareGroup(HttpClient http) : base(http) { }
+    internal FirmwareGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>The installed version, the release source and how the last update went.</summary>
     public Task<FirmwareStateDto> GetStateAsync(CancellationToken ct = default)

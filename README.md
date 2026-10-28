@@ -11,8 +11,8 @@ dotnet add package AccordionQ2.WebApiClient
 
 ## Requirements
 
-- .NET Standard 2.0 compatible runtime (.NET 5+, .NET Framework 4.6.1+)
-- An AccordionQ2 WebApi host reachable over HTTP (e.g. `http://raspberrypi:5000`)
+- .NET Standard 2.0 compatible runtime (.NET 5+, .NET Framework 4.6.1+; 4.7.1+ for a pinned HTTPS certificate)
+- An AccordionQ2 WebApi host reachable over HTTP or HTTPS (e.g. `http://raspberrypi:5000`) on an intranet
 
 ---
 
@@ -41,12 +41,36 @@ await client.Channels.ConfigureAsync(new ChannelConfigRequest
 
 ---
 
+## Security: API keys and HTTPS
+
+A station is meant for an intranet. It can ask every client for an API key (security mode `On`) and serve HTTPS with its own self-signed certificate. Give the client the key and the certificate's SHA-256 fingerprint:
+
+```csharp
+using var client = new AccordionQ2Client("https://station-12:5001", new AccordionQ2ClientOptions
+{
+    ApiKey            = Environment.GetEnvironmentVariable("ACCORDION_API_KEY"), // sent as X-Api-Key on every request
+    CertificateSha256 = "3F:A2:7C:...:9C",  // hex, with or without colons, either case
+});
+```
+
+| Option | Description |
+|---|---|
+| `ApiKey` | The station API key (`acc_…`), sent as `X-Api-Key` on every request, the event stream included. Never logged and never in an exception message. Over `http://` it travels in clear text: only on a trusted intranet segment |
+| `CertificateSha256` | Accept exactly the certificate with this SHA-256 fingerprint (self-signed, reached by IP address) and no other |
+| `TrustedCaCertificate` | Trust the site's own CA besides the operating system's; the name must match |
+| `HttpClient` / `Handler` | The caller's own, which the client doesn't dispose or change. The certificate options can't be combined with them: build the handler with `AccordionQ2Client.CreateHandler(options)`. Turn redirects off in your own handler (`AllowAutoRedirect = false`), as `CreateHandler` does, or a redirect carries the key to another host |
+
+IPv6 literals work in brackets: `http://[::1]:5000`, or with a zone id `http://[fe80::1%eth0]:5000` (or `%25eth0`). `client.Capabilities.GetAsync()` needs no key and reports the station's `SecurityMode` (`Off`, `Report` or `On`). A refusal throws `AccordionQ2SecurityException` (see [Error Handling](#error-handling)). See [Security](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/security.md) for the details.
+
+---
+
 ## Documentation
 
 Comprehensive API documentation is available in the [`docs/`](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/index.md) folder:
 
 - [Getting Started / Installation](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/getting-started/installation.md)
 - [Quick Start](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/getting-started/quickstart.md)
+- [Security](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/security.md) — API keys, HTTPS with a pinned certificate, IPv6 addresses
 - [API Overview](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/overview.md) — all 18 operation groups at a glance
 - Group pages: [Resources](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/resources.md), [Channels](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/channels.md), [Modules](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/modules.md), [Application](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/application.md), [Media](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/media.md), [Connection](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/connection.md), [Comm](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/comm.md), [Numeric Results](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/numeric-results.md), [Calibration](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/calibration.md), [Audit](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/audit.md), [Instruments](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/instruments.md), [Capabilities](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/capabilities.md), [Events and Subscriptions](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/events.md), [Lease](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/lease.md), [System](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/system.md), [Files](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/files.md), [Firmware](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/firmware.md)
 - [Error Handling](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/error-handling.md)
@@ -332,7 +356,7 @@ await client.Resources.SetValueAsync(supply.FunctionMap["OUTPUT_ENABLE"], "True"
 
 | Method | Description |
 |---|---|
-| `GetAsync()` | `CapabilitiesDto`: API, WebApi and codec versions and `Features`; `CapabilitiesDto.None` from a WebApi that predates it |
+| `GetAsync()` | `CapabilitiesDto`: API, WebApi and codec versions, `Features` and `SecurityMode`; `CapabilitiesDto.None` from a WebApi that predates it. Needs no API key |
 
 ```csharp
 var caps = await client.Capabilities.GetAsync();
@@ -437,6 +461,8 @@ catch (AccordionQ2ApiException ex)
 }
 ```
 
+A station in security mode `On` refuses with 401 or 403. The client then throws `AccordionQ2SecurityException`, a subclass of `AccordionQ2ApiException`. Its `Reason` is `MissingApiKey` (the client has none), `InvalidApiKey` (the station doesn't know it) or `RoleTooLow` (403, `RequiredRole` names the role needed). The message names the cause and never contains the key. A certificate that isn't the pinned one fails the request with an `HttpRequestException`.
+
 ---
 
 ## Dependency Injection (`IHttpClientFactory`)
@@ -464,6 +490,19 @@ public class AccordionService
 ```
 
 When using `IHttpClientFactory`, the caller owns the `HttpClient` lifetime — `AccordionQ2Client.Dispose()` will not dispose it.
+
+With an API key and a pinned certificate, build the handler with `CreateHandler`, which also turns redirects off, and pass the key in the options. The client adds the key and the station's address to each request; it doesn't change the shared `HttpClient`:
+
+```csharp
+var trust = new AccordionQ2ClientOptions { CertificateSha256 = pin };
+builder.Services.AddHttpClient("accordion")
+    .ConfigurePrimaryHttpMessageHandler(() => AccordionQ2Client.CreateHandler(trust));
+
+// AccordionService
+var http = factory.CreateClient("accordion");
+_client = new AccordionQ2Client("https://station-12:5001",
+    new AccordionQ2ClientOptions { ApiKey = apiKey, HttpClient = http });
+```
 
 ---
 

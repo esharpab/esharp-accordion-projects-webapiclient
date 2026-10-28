@@ -9,7 +9,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class SubscriptionsGroup : ApiGroupBase
 {
-    internal SubscriptionsGroup(HttpClient http) : base(http) { }
+    internal SubscriptionsGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>
     /// Subscribes the stream <paramref name="streamId"/> (from its <c>hello</c>) to <paramref name="channels"/>.

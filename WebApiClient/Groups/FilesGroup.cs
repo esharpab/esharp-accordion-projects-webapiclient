@@ -9,7 +9,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class FilesGroup : ApiGroupBase
 {
-    internal FilesGroup(HttpClient http) : base(http) { }
+    internal FilesGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>The folders the file API reaches.</summary>
     public Task<List<FileRootDto>> GetRootsAsync(CancellationToken ct = default)

@@ -9,7 +9,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class ResourcesGroup : ApiGroupBase
 {
-    internal ResourcesGroup(HttpClient http) : base(http) { }
+    internal ResourcesGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>Returns the names of all available resources.</summary>
     public Task<string[]> GetNamesAsync(CancellationToken ct = default)

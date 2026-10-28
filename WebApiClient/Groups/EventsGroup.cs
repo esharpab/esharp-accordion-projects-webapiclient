@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
+using AccordionQ2.WebApiClient.Internal;
 using AccordionQ2.WebApiClient.Models;
 
 namespace AccordionQ2.WebApiClient.Groups;
@@ -10,9 +11,9 @@ public sealed class EventsGroup
     /// <summary>The contract's limit: no data at all (events or pings) for this long means a dead stream.</summary>
     public static readonly TimeSpan SilenceLimit = TimeSpan.FromSeconds(30);
 
-    private readonly HttpClient _http;
+    private readonly ApiTransport _transport;
 
-    internal EventsGroup(HttpClient http) => _http = http;
+    internal EventsGroup(ApiTransport transport) => _transport = transport;
 
     /// <summary>
     /// Opens the stream and calls <paramref name="onEvent"/> for each event, in order, until
@@ -21,7 +22,7 @@ public sealed class EventsGroup
     /// <remarks>
     /// Throws <see cref="TimeoutException"/> after <see cref="SilenceLimit"/> without data,
     /// <see cref="IOException"/> when the server ends the stream, and <see cref="AccordionQ2ApiException"/>
-    /// (404 for a WebApi without the stream) when it can't be opened. Reconnecting is the caller's: after
+    /// (404 for a WebApi without the stream; <see cref="AccordionQ2SecurityException"/> for 401/403) when it can't be opened. Reconnecting is the caller's: after
     /// opening again reload channels, as the contract asks, and also whenever <c>generation</c> changes or
     /// the ids have a gap. Missed events aren't replayed.
     /// </remarks>
@@ -29,9 +30,14 @@ public sealed class EventsGroup
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "api/events");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        using var response = await _transport.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
-            throw new AccordionQ2ApiException((int)response.StatusCode, $"The event stream couldn't be opened: HTTP {(int)response.StatusCode}");
+        {
+            var status = (int)response.StatusCode;
+            var body = status is 401 or 403 ? await response.Content.ReadAsStringAsync().ConfigureAwait(false) : string.Empty;
+            var error = _transport.CreateError(status, body, $"The event stream couldn't be opened: HTTP {status}");
+            throw error is AccordionQ2SecurityException ? error : new AccordionQ2ApiException(status, $"The event stream couldn't be opened: HTTP {status}");
+        }
 
         using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
         using var reader = new StreamReader(stream, Encoding.UTF8);

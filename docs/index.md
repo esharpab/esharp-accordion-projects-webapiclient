@@ -13,6 +13,7 @@ This is the .NET counterpart of the [Python WebApiClient](https://pypi.org/proje
 - **Async-first** &mdash; every method returns `Task` or `Task<T>` with `CancellationToken` support
 - **Full API coverage** &mdash; 18 operation groups covering the hardware management endpoints, events, the control lease, system settings, files and firmware updates
 - **HttpClient integration** &mdash; bring your own `HttpClient` (e.g. from `IHttpClientFactory`) or let the library manage one
+- **Secured stations** &mdash; an API key on every request, HTTPS with a pinned certificate fingerprint or a site CA, IPv6 addresses
 - **Cross-platform** &mdash; targets .NET Standard 2.0; works on .NET 5+, .NET Framework 4.6.1+, Mono, Xamarin
 
 ## Quick Example
@@ -33,6 +34,7 @@ Console.WriteLine($"CPU temperature: {temp}");
 
 - [Installation](getting-started/installation.md)
 - [Quick Start](getting-started/quickstart.md)
+- [Security](security.md) &mdash; API keys, HTTPS with a pinned certificate, IPv6 addresses
 
 ## API Reference
 
@@ -57,7 +59,7 @@ Console.WriteLine($"CPU temperature: {temp}");
 
 ## Error Handling
 
-- [Error Handling](error-handling.md) &mdash; exceptions and error patterns
+- [Error Handling](error-handling.md) &mdash; exceptions and error patterns, 401 and 403 included
 
 ## Also Available
 

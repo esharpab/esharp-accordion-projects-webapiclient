@@ -27,7 +27,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </remarks>
 public sealed class CalibrationGroup : ApiGroupBase
 {
-    internal CalibrationGroup(HttpClient http) : base(http) { }
+    internal CalibrationGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>Returns all Calibration channels.</summary>
     public Task<List<CalibrationChannelDto>> GetChannelsAsync(CancellationToken ct = default)

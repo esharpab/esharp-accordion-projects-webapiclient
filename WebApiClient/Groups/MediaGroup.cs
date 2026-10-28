@@ -5,7 +5,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// <summary>Operations for managing media files stored on the device.</summary>
 public sealed class MediaGroup : ApiGroupBase
 {
-    internal MediaGroup(HttpClient http) : base(http) { }
+    internal MediaGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>Lists all available media files.</summary>
     public Task<string[]> ListFilesAsync(CancellationToken ct = default)

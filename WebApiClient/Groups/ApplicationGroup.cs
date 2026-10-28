@@ -9,7 +9,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// </summary>
 public sealed class ApplicationGroup : ApiGroupBase
 {
-    internal ApplicationGroup(HttpClient http) : base(http) { }
+    internal ApplicationGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>Returns the application module name.</summary>
     public Task<string> GetNameAsync(CancellationToken ct = default)

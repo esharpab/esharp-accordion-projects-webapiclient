@@ -6,7 +6,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// <summary>Operations for querying and configuring hardware channels.</summary>
 public sealed class ChannelsGroup : ApiGroupBase
 {
-    internal ChannelsGroup(HttpClient http) : base(http) { }
+    internal ChannelsGroup(ApiTransport transport) : base(transport) { }
 
     /// <summary>
     /// Returns every channel, or the one with <paramref name="netName"/> (net names only, no aliases),

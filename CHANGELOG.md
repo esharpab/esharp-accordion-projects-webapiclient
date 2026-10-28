@@ -23,6 +23,11 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   rolled back to older firmware is caught; and "any age" (`maxAgeMs` 0) is sent as `int.MaxValue` ms, so such a
   station would answer from its cache rather than force a read of every name.
   Existing calls send and return what they did (`NotCached` is null for them).
+- `Channels.UploadByteStreamAsync(name, stream | path, target, force)`: streams a file to a ByteStream file channel
+  (`POST /api/channels/bytestream`, firmware 7.0.5), e.g. an FPGA image to MicroHAPS's `JTAG.FPGA_IMAGE`, loaded
+  into the KU5P's SRAM by openFPGALoader without Vivado. The stream is sent as it is read, not buffered whole.
+- `Channels.GetByteStreamStatusAsync(name)` and `Channels.WaitByteStreamAsync(name, timeout)`: the load's state,
+  progress and result, and the last image's name, size and SHA-256 (`ByteStreamStatusDto`, `ByteStreamImageDto`).
 
 ### Compatibility
 

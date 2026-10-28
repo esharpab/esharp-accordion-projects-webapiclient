@@ -12,6 +12,10 @@ Channels represent multi-purpose I/O pins (analog, digital, I2C, SPI, etc.).
 | `ConfigureManyAsync(configs, ct?)` | `Task` | Partial-update multiple channels in one round-trip. |
 | `GetEncodedAsync(netName?, ct?)` | `Task<EncodedChannelsDto>` | Every channel, or one by net name, in the byte protocol's binary encoding. |
 | `ConfigureEncodedAsync(codecVersion, data, ct?)` | `Task<int>` | Configure whole channels sent in that encoding; returns how many were configured. |
+| `UploadByteStreamAsync(name, content, fileName, target?, force?, ct?)` | `Task<ByteStreamStatusDto>` | Stream a file to a ByteStream file channel (MicroHAPS `JTAG.FPGA_IMAGE`: an FPGA image); firmware 7.0.5. |
+| `UploadByteStreamAsync(name, path, target?, force?, ct?)` | `Task<ByteStreamStatusDto>` | The same, from a file on disk. |
+| `GetByteStreamStatusAsync(name, ct?)` | `Task<ByteStreamStatusDto>` | The load's state, progress and result, and the last image's name, size and SHA-256. |
+| `WaitByteStreamAsync(name, timeout, pollInterval?, ct?)` | `Task<ByteStreamStatusDto>` | Poll the status until `done` or `failed`. |
 
 ## Examples
 
@@ -154,6 +158,39 @@ if (caps.Has(CapabilitiesDto.ChannelsEncoded))
 - `Generation` is the hardware-app session the channels came from (see [Events](events.md)).
 - `ConfigureEncodedAsync` throws `AccordionQ2ApiException` with 409 when `codecVersion` isn't the server's, 400 when `data` doesn't decode, and 500 with the hardware app's message.
 - Don't update local state from its result: reload channels on the `configuration` event instead.
+
+### Loading an FPGA image (ByteStream file channels, firmware 7.0.5)
+
+MicroHAPS has a ByteStream channel `JTAG.FPGA_IMAGE` (Unit `file:FPGA image`). It takes a file, not a value: the
+client streams the file to `POST /api/channels/bytestream`, and the station checks it and loads it into the KU5P's
+SRAM with openFPGALoader, without Vivado and whether or not the XVC server is on. `Resources.SetValuesAsync` on this
+channel is refused (400). Loading needs the Operator role, as switching `XVC_ENABLE` on does: the station checks the
+part (XCKU5P-FFVB676) and the IDCODE, not what the design drives. Writing the configuration flash is not in 7.0.5
+(`target: "flash"` gives 501).
+
+```csharp
+var status = await client.Channels.UploadByteStreamAsync("1.MicroHAPS.JTAG.FPGA_IMAGE", @"C:\builds\hci_mig_top.bit");
+status = await client.Channels.WaitByteStreamAsync("1.MicroHAPS.JTAG.FPGA_IMAGE", TimeSpan.FromMinutes(2));
+if (status.State != "done")
+    throw new Exception(status.Message);                    // e.g. "...is for xcku3p-ffva676-1-e, not the XCKU5P..."
+Console.WriteLine($"{status.Image!.FileName} {status.Image.Sha256} in {status.Image.DurationMs} ms");
+await client.Resources.SetValueAsync("1.MicroHAPS.HCI.Scan", "True");   // the new design's HCI devices
+```
+
+| Status | When |
+|--------|------|
+| 400 | Not a file channel, a bad file name or extension, or the station refused the file (another part, a partial bitstream, not a bitstream) |
+| 409 | A load, a POWER cycle or a PROGRAM pulse is running; the board is off; Vivado is connected to XVC (pass `force: true` to cut it) |
+| 413 | Over 64 MB |
+| 423 | Another client holds the lease |
+| 501 | `target: "flash"` |
+| 504 | The station didn't take the file in time: read the status, the load may still start |
+
+`ByteStreamStatusDto`: `State` (`idle`, `validating`, `loading`, `waitingDone`, `done`, `failed`), `Progress` (0 to
+100), `Phase`, `Message`, `Accept`, `Targets`, `MaxBytes`, and `Image` (`FileName`, `Size`, `Sha256`, `Format`,
+`Design`, `Part`, `Built`, `Started`, `Finished`, `DurationMs`, `Result`, `Loaded`, `Replaced`, `DesignKeys`). `Loaded`
+turns false once a POWER cycle or a PROGRAM_B pulse has put the flash design back; `DesignKeys` is the DesignID
+device's `Info.Keys` from the first `HCI.Scan` after the load.
 
 ## Request Model
 

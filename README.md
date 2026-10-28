@@ -14,6 +14,9 @@ dotnet add package AccordionQ2.WebApiClient
 - .NET Standard 2.0 compatible runtime (.NET 5+, .NET Framework 4.6.1+; 4.7.1+ for a pinned HTTPS certificate)
 - An AccordionQ2 WebApi host reachable over HTTP or HTTPS (e.g. `http://raspberrypi:5000`) on an intranet
 
+Upgrading from 5.x: 7.0.0 is source compatible for normal use but needs a rebuild; see
+[CHANGELOG.md](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/CHANGELOG.md) for what changed.
+
 ---
 
 ## Quick Start

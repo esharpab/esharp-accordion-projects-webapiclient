@@ -22,6 +22,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>7.0.0: station API keys (X-Api-Key), pinned HTTPS certificates and IPv6 base URLs. Source compatible with 5.x for normal use and needs a rebuild (not binary compatible); without a key or pin it sends what 5.28 sent, and it works with firmware 6.x and 7. Breaks: new AccordionQ2Client(url, null) no longer compiles; ApiGroupBase can't be derived from; a caller's HttpClient no longer gets BaseAddress set; redirects aren't followed. Full list: https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient</PackageProjectUrl>
     <RepositoryUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

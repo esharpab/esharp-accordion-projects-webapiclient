@@ -63,9 +63,40 @@ await client.Channels.ConfigureAsync(new ChannelConfigRequest
 await client.Channels.ConfigureManyAsync(new List<ChannelConfigRequest>
 {
     new() { NetName = "MPIO00", Enabled = true, Direction = DirectionTypes.IN  },
-    new() { NetName = "MPIO01", Enabled = true, Direction = DirectionTypes.OUT },
+    new() { NetName = "MPIO01", Enabled = true, Direction = DirectionTypes.OUT, Value = "0" },
 });
 ```
+
+### Switching an MPIO to an Output at a Known Level
+
+`Value` sets the output's value in the same configure as `Direction`, `ChannelType` and `Details` (firmware 7.0.5
+and later), so the pin never drives another level in between. Without it, a channel that becomes an output (from
+an input, or as another type) starts at its default value (`Details.DefaultValue`, 0 V / False unless set), never at
+the last value read while it was an input. One that stays an output keeps its present value unless `Value` is given.
+
+```csharp
+// Analog: 0.8 V, in the channel's units at the gain and offset the request leaves
+await client.Channels.ConfigureAsync(new ChannelConfigRequest
+{
+    NetName = "0.3.ESH10000121.MPIO04", Direction = DirectionTypes.OUT,
+}.WithValue(0.8));
+
+// PseudoDigital: type, levels and state together
+await client.Channels.ConfigureAsync(new ChannelConfigRequest
+{
+    NetName = "0.3.ESH10000121.MPIO05", Direction = DirectionTypes.OUT, ChannelType = ChannelTypes.PseudoDigital,
+    Details = new ChannelDetailsDto { Vl = 0.5, Vh = 3.0 },
+}.WithValue(false));
+```
+
+- `Value` is a string, as `Resources.SetValueAsync` takes it: `"1.8"` (invariant culture) for Analog,
+  `"True"`/`"False"` for PseudoDigital and Digital. `WithValue(double)` and `WithValue(bool)` format it.
+- The station refuses (400) a value for a channel the request leaves an input, one of a type that takes no value
+  (Ratiometric, NumericResult, ...), one that doesn't parse, and one the module can't drive.
+- **Firmware older than 7.0.5 ignores `Value`** (200 OK, and the output starts at its last reading). Check the
+  station's firmware first: `(await client.Firmware.GetStateAsync()).Current` is its version.
+- In `ConfigureManyAsync`, each channel is configured as a whole or not at all: a channel the module refuses keeps
+  its old configuration and the others are still applied.
 
 ### Type-Specific Fields (`Details`)
 
@@ -142,6 +173,7 @@ Only non-null properties are applied. Supply `NetName` to locate by net name, `A
 | `GroupName` | `string?` | Logical group name |
 | `DeviceName` | `string?` | Name of the providing device |
 | `Details` | `ChannelDetailsDto?` | Type-specific fields to change; set only those to change |
+| `Value` | `string?` | The output's value, applied in the same configure (firmware 7.0.5+; see above) |
 
 ## Response Model
 

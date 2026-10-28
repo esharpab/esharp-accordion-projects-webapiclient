@@ -62,4 +62,30 @@ public class ChannelConfigRequest
     /// type are accepted; the server refuses the request with the field's name otherwise.
     /// </summary>
     public ChannelDetailsDto? Details { get; set; }
+
+    /// <summary>
+    /// The output's value, applied in the same configure as <see cref="Direction"/>, <see cref="ChannelType"/> and
+    /// <see cref="Details"/>, so the pin doesn't drive another level in between. Written as
+    /// <c>Resources.SetValueAsync</c> takes it, invariant culture: <c>"1.8"</c> for an Analog channel (in its units,
+    /// at the gain and offset the request leaves), <c>"True"</c>/<c>"False"</c> for a PseudoDigital or Digital one;
+    /// <see cref="WithValue(double)"/> and <see cref="WithValue(bool)"/> format it. Only for a channel the request
+    /// leaves an output; the station refuses it otherwise (400). Without it, a channel that becomes an output (from an
+    /// input, or as another type) starts at its default value, never at the last value read while it was an input.
+    /// Needs firmware 7.0.5 or later: older firmware ignores the field and the output starts at its last reading.
+    /// </summary>
+    public string? Value { get; set; }
+
+    /// <summary>Sets <see cref="Value"/> to <paramref name="value"/>, invariant culture; returns this request.</summary>
+    public ChannelConfigRequest WithValue(double value)
+    {
+        Value = value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        return this;
+    }
+
+    /// <summary>Sets <see cref="Value"/> to "True" or "False"; returns this request.</summary>
+    public ChannelConfigRequest WithValue(bool value)
+    {
+        Value = value ? "True" : "False";
+        return this;
+    }
 }

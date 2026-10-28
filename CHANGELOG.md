@@ -5,6 +5,23 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
+## [7.1.0] – 2026-10-28
+
+### Added
+
+- `ChannelConfigRequest.Value`: an output's value, applied in the same configure as `Direction`, `ChannelType`
+  and `Details`, so an MPIO switched from input to output starts at that level instead of the last value read
+  while it was an input. A string as `Resources.SetValueAsync` takes it (`"1.8"`, `"True"`); `WithValue(double)`
+  and `WithValue(bool)` format it (invariant culture). Left out of the request when null.
+
+### Compatibility
+
+- **Needs firmware 7.0.5 or later.** Older firmware ignores the field (200 OK) and the output starts at its last
+  reading. Without `Value`, firmware 7.0.5 starts a channel that becomes an output at its default value.
+- Source and binary compatible with 7.0.0.
+
+---
+
 ## [7.0.0] – 2026-10-28
 
 Secured stations (FW7 CLI-01): an API key, HTTPS with a pinned certificate, and IPv6 addresses.

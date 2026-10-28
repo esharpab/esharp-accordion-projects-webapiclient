@@ -35,6 +35,7 @@ Partial-update request for `ConfigureAsync` / `ConfigureManyAsync`. Only non-nul
 | `GroupName` | `string?` | Logical group name |
 | `DeviceName` | `string?` | Name of the providing device |
 | `Details` | `ChannelDetailsDto?` | Type-specific fields to change (see [Channels](../api/channels.md#type-specific-fields-details)) |
+| `Value` | `string?` | The output's value, applied in the same configure: `"1.8"` (Analog), `"True"`/`"False"` (PseudoDigital, Digital). Without it, a channel that becomes an output starts at its default value. Firmware 7.0.5+; older firmware ignores it (see [Channels](../api/channels.md#switching-an-mpio-to-an-output-at-a-known-level)) |
 
 ### `NumericMeasureRequest`
 

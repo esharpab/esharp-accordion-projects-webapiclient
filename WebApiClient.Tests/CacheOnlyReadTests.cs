@@ -55,7 +55,7 @@ public class CacheOnlyReadTests
     }
 
     [TestMethod]
-    public async Task The_capabilities_are_asked_once()
+    public async Task The_capabilities_are_asked_once_within_their_lifetime()
     {
         var (client, handler) = Create(WithFeature, "{\"resources\":{},\"ageMs\":{},\"notCached\":[\"A\"]}");
         using (client)
@@ -66,6 +66,75 @@ public class CacheOnlyReadTests
 
         CollectionAssert.AreEqual(
             new[] { "/api/capabilities", "/api/resources/values/get", "/api/resources/values/get" },
+            handler.Requests.Select(r => r.Uri!.AbsolutePath).ToArray());
+    }
+
+    [TestMethod]
+    public async Task Any_age_goes_on_the_wire_as_int_MaxValue_not_0()
+    {
+        // 0 to an older WebApi that ignores cacheOnly would force a hardware read of every name.
+        var (client, handler) = Create(WithFeature, "{\"resources\":{},\"ageMs\":{},\"notCached\":[\"A\"]}");
+        using (client)
+        {
+            await client.Resources.ReadCachedValuesAsync(new[] { "A" });
+            Assert.AreEqual(int.MaxValue, Body(handler.Last).GetValue("maxAgeMs", StringComparison.OrdinalIgnoreCase)!.Value<int>());
+            await client.Resources.ReadCachedValuesAsync(new[] { "A" }, maxAgeMs: -5);
+            Assert.AreEqual(int.MaxValue, Body(handler.Last).GetValue("maxAgeMs", StringComparison.OrdinalIgnoreCase)!.Value<int>());
+        }
+    }
+
+    [TestMethod]
+    public async Task The_capabilities_are_asked_again_once_their_lifetime_is_over()
+    {
+        var capabilities = WithFeature;
+        var handler = new RecordingHandler
+        {
+            Respond = r => RecordingHandler.Json(HttpStatusCode.OK,
+                r.RequestUri!.AbsolutePath == "/api/capabilities" ? capabilities : "{\"resources\":{},\"ageMs\":{},\"notCached\":[\"A\"]}"),
+        };
+        long now = 1_000;
+        using (var client = new AccordionQ2Client(Url, new AccordionQ2ClientOptions { Handler = handler }))
+        {
+            client.Resources.Clock = () => now;
+            await client.Resources.ReadCachedValuesAsync(new[] { "A" });
+
+            capabilities = WithoutFeature; // rolled back to older firmware
+            now += (long)Groups.ResourcesGroup.CapabilityCheckLifetime.TotalMilliseconds;
+            await Assert.ThrowsExactlyAsync<NotSupportedException>(() => client.Resources.ReadCachedValuesAsync(new[] { "A" }));
+        }
+
+        CollectionAssert.AreEqual(
+            new[] { "/api/capabilities", "/api/resources/values/get", "/api/capabilities" },
+            handler.Requests.Select(r => r.Uri!.AbsolutePath).ToArray(),
+            "no values asked for once the feature is gone");
+    }
+
+    [TestMethod]
+    public async Task A_failed_call_makes_the_next_one_ask_for_the_capabilities_again()
+    {
+        var capabilities = WithFeature;
+        var valuesStatus = HttpStatusCode.OK;
+        var handler = new RecordingHandler
+        {
+            Respond = r => r.RequestUri!.AbsolutePath == "/api/capabilities"
+                ? RecordingHandler.Json(HttpStatusCode.OK, capabilities)
+                : RecordingHandler.Json(valuesStatus, "{\"resources\":{},\"ageMs\":{},\"notCached\":[\"A\"]}"),
+        };
+        using (var client = new AccordionQ2Client(Url, new AccordionQ2ClientOptions { Handler = handler }))
+        {
+            client.Resources.Clock = () => 1_000; // the lifetime never runs out
+            await client.Resources.ReadCachedValuesAsync(new[] { "A" });
+
+            valuesStatus = HttpStatusCode.ServiceUnavailable; // the station restarts
+            await Assert.ThrowsAsync<Exception>(() => client.Resources.ReadCachedValuesAsync(new[] { "A" }));
+
+            capabilities = WithoutFeature; // and comes back on older firmware
+            valuesStatus = HttpStatusCode.OK;
+            await Assert.ThrowsExactlyAsync<NotSupportedException>(() => client.Resources.ReadCachedValuesAsync(new[] { "A" }));
+        }
+
+        CollectionAssert.AreEqual(
+            new[] { "/api/capabilities", "/api/resources/values/get", "/api/resources/values/get", "/api/capabilities" },
             handler.Requests.Select(r => r.Uri!.AbsolutePath).ToArray());
     }
 

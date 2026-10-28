@@ -97,11 +97,11 @@ foreach (var name in r.NotCached!)
     Console.WriteLine($"{name}: not cached");
 ```
 
-- A name whose cached value is at most `maxAgeMs` old is in `Resources` and `AgeMs`. Any other name is in `NotCached` and in neither of the others. `maxAgeMs: 0` (the default) takes a cached value of any age.
+- A name whose cached value is at most `maxAgeMs` old is in `Resources` and `AgeMs`. Any other name is in `NotCached` and in neither of the others. `maxAgeMs: 0` (the default) or less takes a cached value of any age; it goes on the wire as `int.MaxValue` ms (24.8 days), so an older WebApi that ignored `cacheOnly` would answer from its cache rather than read every name.
 - Channels whose reads use data up (bus receives, byte streams, numeric results) are always in `NotCached`.
 - `NotCached` is empty when every name was cached. It is null from `ReadValuesAsync` and `GetValuesAsync`.
-- A name no channel has fails the call with 400, as the other reads do.
-- The first call checks `GET /api/capabilities` for `CapabilitiesDto.ValuesCacheOnly` (firmware 7.0.5 or later). An older WebApi would ignore `cacheOnly` and read the hardware, so without the feature the call throws `NotSupportedException` and asks for no values. It also throws when an answer has no `notCached`.
+- A name not in `GET /api/channels` fails the call with 400 and nothing is read. That includes hidden system lines, which `ReadValuesAsync` can read.
+- The call checks `GET /api/capabilities` for `CapabilitiesDto.ValuesCacheOnly` (firmware 7.0.5 or later) first. An older WebApi would ignore `cacheOnly` and read the hardware, so without the feature the call throws `NotSupportedException` and asks for no values. It also throws when an answer has no `notCached`. The check is kept for `ResourcesGroup.CapabilityCheckLifetime` (60 s) and made again after any failed call, so a station whose update rolled back to older firmware is caught before it is asked for values.
 
 To have values pushed instead of polling, use [subscriptions](events.md#subscriptions).
 

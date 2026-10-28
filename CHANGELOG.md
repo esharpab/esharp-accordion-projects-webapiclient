@@ -13,8 +13,11 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   `cacheOnly` (firmware 7.0.5 or later). The station answers from its value cache alone, never reads the
   hardware and never refuses it under the lease. A name with no cached value at most `maxAgeMs` old (any age
   for 0), and every channel whose reads consume data, is in the new `ResourceValuesDto.NotCached` instead of
-  `Resources`. The first call checks `CapabilitiesDto.ValuesCacheOnly` (`"values.cacheOnly"`), because an older
-  WebApi ignores the field and reads; without it, `NotSupportedException` and no values are asked for.
+  `Resources`. The call checks `CapabilitiesDto.ValuesCacheOnly` (`"values.cacheOnly"`) first, because an older
+  WebApi ignores the field and reads; without it, `NotSupportedException` and no values are asked for. The check
+  is kept for 60 s (`ResourcesGroup.CapabilityCheckLifetime`) and redone after any failed call, so a station
+  rolled back to older firmware is caught; and "any age" (`maxAgeMs` 0) is sent as `int.MaxValue` ms, so such a
+  station would answer from its cache rather than force a read of every name.
   Existing calls send and return what they did (`NotCached` is null for them).
 
 ## [7.0.0] – 2026-10-28

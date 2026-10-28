@@ -10,7 +10,9 @@ namespace AccordionQ2.WebApiClient.Groups;
 public sealed class ResourcesGroup : ApiGroupBase
 {
     private readonly CapabilitiesGroup _capabilities;
-    private volatile bool _cacheOnlyChecked;
+    private const long NotChecked = -1;
+    // When the station last said it has values.cacheOnly (Clock ms), or NotChecked.
+    private long _cacheOnlyCheckedAt = NotChecked;
 
     internal ResourcesGroup(ApiTransport transport) : base(transport) => _capabilities = new CapabilitiesGroup(transport);
 
@@ -53,34 +55,63 @@ public sealed class ResourcesGroup : ApiGroupBase
     /// the station never reads the hardware for this call and the lease never refuses it, so it can't switch a mux or
     /// reset a peak buffer under a running test. A name with no cached value at most <paramref name="maxAgeMs"/> old is
     /// in <see cref="ResourceValuesDto.NotCached"/> instead of <see cref="ResourceValuesDto.Resources"/>, and so is every
-    /// channel whose reads consume data. <paramref name="maxAgeMs"/> 0 takes a cached value of any age;
+    /// channel whose reads consume data. <paramref name="maxAgeMs"/> 0 (or less) takes a cached value of any age;
     /// <see cref="ResourceValuesDto.AgeMs"/> says how old each is.
     /// </summary>
     /// <remarks>
-    /// The first call asks <c>GET /api/capabilities</c> for <see cref="CapabilitiesDto.ValuesCacheOnly"/>, since an older
-    /// WebApi ignores <c>cacheOnly</c> and reads the hardware; without the feature nothing is asked for.
+    /// The call asks <c>GET /api/capabilities</c> for <see cref="CapabilitiesDto.ValuesCacheOnly"/> first, since an
+    /// older WebApi ignores <c>cacheOnly</c> and reads the hardware; without the feature nothing is asked for. The
+    /// answer is kept for <see cref="CapabilityCheckLifetime"/> and dropped after any failed call, so a station whose
+    /// update rolled back to older firmware is asked again. For the same reason "any age" goes on the wire as
+    /// <see cref="int.MaxValue"/> ms rather than 0: a 7.0.5 station reads it the same way, and an older one that
+    /// ignores <c>cacheOnly</c> answers from its cache and reads only the names it has no value for, instead of
+    /// forcing a read of every name.
     /// </remarks>
     /// <exception cref="NotSupportedException">
     /// The station doesn't have <see cref="CapabilitiesDto.ValuesCacheOnly"/> (firmware before 7.0.5), and no values were
     /// asked for; or its answer had no <c>notCached</c>, so it ignored <c>cacheOnly</c>.
     /// </exception>
-    /// <exception cref="AccordionQ2ApiException">400 for a name no channel has, as with the other reads.</exception>
+    /// <exception cref="AccordionQ2ApiException">
+    /// 400 for a name not in <c>GET /api/channels</c> (hidden system lines included), with nothing read.
+    /// </exception>
     public async Task<ResourceValuesDto> ReadCachedValuesAsync(string[] names, int maxAgeMs = 0, CancellationToken ct = default)
     {
-        if (!_cacheOnlyChecked)
+        var checkedAt = Interlocked.Read(ref _cacheOnlyCheckedAt);
+        if (checkedAt < 0 || Clock() - checkedAt >= (long)CapabilityCheckLifetime.TotalMilliseconds)
         {
+            Interlocked.Exchange(ref _cacheOnlyCheckedAt, NotChecked);
             var capabilities = await _capabilities.GetAsync(ct).ConfigureAwait(false);
             if (!capabilities.Has(CapabilitiesDto.ValuesCacheOnly))
                 throw new NotSupportedException(
                     $"The station doesn't offer cache-only reads (feature '{CapabilitiesDto.ValuesCacheOnly}', firmware 7.0.5 or later); nothing was read");
-            _cacheOnlyChecked = true;
+            Interlocked.Exchange(ref _cacheOnlyCheckedAt, Clock());
         }
-        var r = await PostAsync<ResourceValuesDto>("api/resources/values/get",
-            new { Names = names, MaxAgeMs = maxAgeMs, CacheOnly = true }, ct).ConfigureAwait(false);
+        ResourceValuesDto r;
+        try
+        {
+            r = await PostAsync<ResourceValuesDto>("api/resources/values/get",
+                new { Names = names, MaxAgeMs = maxAgeMs > 0 ? maxAgeMs : int.MaxValue, CacheOnly = true }, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            // The station may be restarting, perhaps into older firmware: ask for the capability again next time.
+            Interlocked.Exchange(ref _cacheOnlyCheckedAt, NotChecked);
+            throw;
+        }
         if (r.NotCached is null)
+        {
+            Interlocked.Exchange(ref _cacheOnlyCheckedAt, NotChecked);
             throw new NotSupportedException("The station answered without notCached: it ignored cacheOnly and may have read the hardware");
+        }
         return r;
     }
+
+    /// <summary>How long <see cref="ReadCachedValuesAsync"/> trusts a capability check before asking again.</summary>
+    public static readonly TimeSpan CapabilityCheckLifetime = TimeSpan.FromSeconds(60);
+
+    /// <summary>Milliseconds on a monotonic clock; the tests move it.</summary>
+    internal Func<long> Clock { get; set; } =
+        () => (long)(System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
 
     /// <summary>Sets values for multiple resources in one round-trip.</summary>
     public Task SetValuesAsync(Dictionary<string, string> resources, CancellationToken ct = default)

@@ -63,7 +63,7 @@ public sealed class ChannelsGroup : ApiGroupBase
     /// station didn't take the file in time; read the status, the load may still start).
     /// </summary>
     /// <param name="name">The channel's net name or alias.</param>
-    /// <param name="content">The file's bytes.</param>
+    /// <param name="content">The file's bytes, read from its current position. It stays open: the caller disposes it.</param>
     /// <param name="fileName">The file's own name, shown in the status and the log.</param>
     /// <param name="target"><c>sram</c>: until the next power cycle or PROGRAM_B pulse.</param>
     /// <param name="force">Load even while Vivado is connected to the station's XVC server (its session is cut).</param>

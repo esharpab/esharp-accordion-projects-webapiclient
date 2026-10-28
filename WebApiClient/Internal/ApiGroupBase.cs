@@ -63,7 +63,8 @@ public abstract class ApiGroupBase
 
     protected async Task<T> PostStreamAsync<T>(string path, Stream data, CancellationToken ct = default)
     {
-        var content = new StreamContent(data);
+        // Wrapped: disposing the request disposes its content, and StreamContent disposes the stream it reads
+        var content = new StreamContent(new NonClosingStream(data));
         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         using var response = await SendAsync(HttpMethod.Post, path, content, ct).ConfigureAwait(false);
         return await ReadAsync<T>(response).ConfigureAwait(false);

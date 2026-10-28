@@ -43,6 +43,22 @@ public class ByteStreamTests
     }
 
     [TestMethod]
+    public async Task Upload_LeavesTheCallersStreamOpen()
+    {
+        var (client, handler) = Create();
+        handler.Respond = _ => RecordingHandler.Json(HttpStatusCode.Accepted, "{\"state\":\"loading\"}");
+        var data = new MemoryStream([1, 2, 3, 4]);
+        using (client)
+            await client.Channels.UploadByteStreamAsync(Channel, data, "top.bit");
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4 }, handler.Last.Body);
+        // Still the caller's: readable and seekable after the upload, e.g. to hash it or send it again
+        Assert.IsTrue(data.CanRead);
+        Assert.AreEqual(4, data.Position);
+        data.Position = 0;
+        Assert.AreEqual(1, data.ReadByte());
+    }
+
+    [TestMethod]
     public async Task Upload_FromAPath_SendsTheFileNameOnly_AndForce()
     {
         var path = Path.Combine(Path.GetTempPath(), $"bs-{Guid.NewGuid():N}.bit");

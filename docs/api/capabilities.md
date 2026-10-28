@@ -54,5 +54,6 @@ else
 | `CapabilitiesDto.ChannelsEncoded` | `"channels.encoded"` | `Channels.GetEncodedAsync` and `Channels.ConfigureEncodedAsync` work |
 | `CapabilitiesDto.Events` | `"events"` | The [event stream](events.md) works |
 | `CapabilitiesDto.SecurityApiKey` | `"security.apikey"` | The station checks API keys as `SecurityMode` says ([Security](../security.md)) |
+| `CapabilitiesDto.ValuesCacheOnly` | `"values.cacheOnly"` | `Resources.ReadCachedValuesAsync` works ([cache-only reads](resources.md#cache-only-reads)); checked by the client itself |
 
 The server may list other features too, for example `"instruments"`; `Has` takes any string.

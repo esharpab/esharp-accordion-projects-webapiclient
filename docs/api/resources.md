@@ -13,6 +13,7 @@ Resources represent readable/writable hardware values such as voltages, temperat
 | `SetValueAsync(name, value, ct?)` | `Task` | Write a value to a single resource. |
 | `GetValuesAsync(names, ct?)` | `Task<Dictionary<string, string>>` | Read multiple resources in one round-trip. |
 | `ReadValuesAsync(names, maxAgeMs, ct?)` | `Task<ResourceValuesDto>` | Read multiple resources, accepting values read at most `maxAgeMs` ago; says how old each value is. |
+| `ReadCachedValuesAsync(names, maxAgeMs?, ct?)` | `Task<ResourceValuesDto>` | Read multiple resources from the WebApi's cache alone, never from the hardware; lists the names it had no value for. |
 | `SetValuesAsync(resources, ct?)` | `Task` | Write multiple resources in one round-trip. |
 | `TransactAsync(name, value, ct?)` | `Task<string>` | Write then read (command/response pattern). |
 
@@ -78,6 +79,30 @@ foreach (var (name, value) in r.Resources)
 - Values whose read uses data up (bus receives, byte streams, numeric results) are never served from the cache.
 - While another client holds the [lease](lease.md), `GetValueAsync` and `GetValuesAsync` are refused with 423, but `ReadValuesAsync` with `maxAgeMs > 0` keeps working from the cache.
 
+### Cache-only Reads
+
+`ReadCachedValuesAsync` answers from the WebApi's value cache alone: the station never reads the hardware for it, and the [lease](lease.md) never refuses it. Use it where a read must not disturb anything, for example a remote reader looking at a station while a test runs: reading a channel whose `readEffect` is `Disturbing` (most of them) can switch a mux or reset a peak buffer.
+
+```csharp
+var r = await client.Resources.ReadCachedValuesAsync(new[]
+{
+    "0.4.ESH10000662.VMON1",
+    "0.4.ESH10000662.PEAK1",
+    "Ports.UART.ttyAMA0",
+}, maxAgeMs: 5000);
+
+foreach (var (name, value) in r.Resources)
+    Console.WriteLine($"{name} = {value} ({r.AgeMs[name]:0} ms old)");
+foreach (var name in r.NotCached!)
+    Console.WriteLine($"{name}: not cached");
+```
+
+- A name whose cached value is at most `maxAgeMs` old is in `Resources` and `AgeMs`. Any other name is in `NotCached` and in neither of the others. `maxAgeMs: 0` (the default) takes a cached value of any age.
+- Channels whose reads use data up (bus receives, byte streams, numeric results) are always in `NotCached`.
+- `NotCached` is empty when every name was cached. It is null from `ReadValuesAsync` and `GetValuesAsync`.
+- A name no channel has fails the call with 400, as the other reads do.
+- The first call checks `GET /api/capabilities` for `CapabilitiesDto.ValuesCacheOnly` (firmware 7.0.5 or later). An older WebApi would ignore `cacheOnly` and read the hardware, so without the feature the call throws `NotSupportedException` and asks for no values. It also throws when an answer has no `notCached`.
+
 To have values pushed instead of polling, use [subscriptions](events.md#subscriptions).
 
 ### Write-then-Read Transaction
@@ -97,3 +122,4 @@ Console.WriteLine($"Register value: {response}");
 |----------|------|-------------|
 | `Resources` | `Dictionary<string, string>` | Each requested name and its value |
 | `AgeMs` | `Dictionary<string, double>` | How old each value is in milliseconds; 0 when just read. Empty from a WebApi without the cache |
+| `NotCached` | `string[]?` | From `ReadCachedValuesAsync`: the names the cache had no value for, in the order asked (empty when every name was cached). Null from the other reads |

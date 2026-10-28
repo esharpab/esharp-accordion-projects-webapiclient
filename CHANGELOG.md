@@ -5,6 +5,18 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Cache-only reads**: `Resources.ReadCachedValuesAsync(names, maxAgeMs = 0)` sends `values/get` with
+  `cacheOnly` (firmware 7.0.5 or later). The station answers from its value cache alone, never reads the
+  hardware and never refuses it under the lease. A name with no cached value at most `maxAgeMs` old (any age
+  for 0), and every channel whose reads consume data, is in the new `ResourceValuesDto.NotCached` instead of
+  `Resources`. The first call checks `CapabilitiesDto.ValuesCacheOnly` (`"values.cacheOnly"`), because an older
+  WebApi ignores the field and reads; without it, `NotSupportedException` and no values are asked for.
+  Existing calls send and return what they did (`NotCached` is null for them).
+
 ## [7.0.0] – 2026-10-28
 
 Secured stations (FW7 CLI-01): an API key, HTTPS with a pinned certificate, and IPv6 addresses.

@@ -65,6 +65,27 @@ public class JtagPortStateDto
     [JsonProperty("xvc")] public JtagXvcDto? Xvc { get; set; }
 
     [JsonProperty("since")] public DateTimeOffset? Since { get; set; }
+
+    /// <summary>16 hex digits, new for every port object (its owner loaded again); empty from older firmware.</summary>
+    [JsonProperty("incarnation")] public string Incarnation { get; set; } = string.Empty;
+
+    /// <summary>
+    /// What may have reconfigured the FPGA behind it (firmware's Drummer/PACKAGES.md 4.4): a count of owner uses, XVC
+    /// sessions, falls to down and the owner's notes (a PMBus write), with the last one's why. Null from older firmware.
+    /// </summary>
+    [JsonProperty("disturbed")] public JtagDisturbedDto? Disturbed { get; set; }
+}
+
+/// <summary>A JTAG port's disturbances: hints that the FPGA may have been reconfigured.</summary>
+public class JtagDisturbedDto
+{
+    /// <summary>How many since the port object was made (a MicroHAPS use counts twice: its note and its take).</summary>
+    [JsonProperty("count")] public long Count { get; set; }
+
+    /// <summary>The last one: <c>"MicroHAPS's use: a POWER cycle"</c>, <c>"an XVC session from 192.168.0.10"</c>; null while the count is 0.</summary>
+    [JsonProperty("why")] public string? Why { get; set; }
+
+    [JsonProperty("since")] public DateTimeOffset? Since { get; set; }
 }
 
 /// <summary>Who holds a JTAG port.</summary>

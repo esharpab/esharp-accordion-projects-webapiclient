@@ -58,6 +58,8 @@ await client.JtagPorts.SetXvcAsync("MicroHAPS.JTAG.A", true);   // an Admin key
 | `MaxTckHz` | `max_tck_hz` | The fastest TCK a holder gets |
 | `Xvc` | `xvc` | `Enabled`, `Engine`, `Listen` (`"0.0.0.0:2542"`), `Allow`, `Client`, `Waiting`, `Sessions`, `LastEnd` |
 | `Since` | `since` | When the state last changed |
+| `Incarnation` | `incarnation` | 16 hex digits, new for every port object (its owner loaded again); `""` from older firmware |
+| `Disturbed` | `disturbed` | What may have reconfigured the FPGA behind it: `Count`, `Why` (the last one: `"MicroHAPS's use: a POWER cycle"`, `"an XVC session from 192.168.0.10"`), `Since`; null from older firmware. A Drummer instance forgets what it loaded when this count moves |
 
 ## Holders, and who waits
 

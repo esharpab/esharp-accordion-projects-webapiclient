@@ -152,6 +152,24 @@ public class JtagPortsTests
             s = await client.JtagPorts.GetStateAsync("MicroHAPS.JTAG.A");
         Assert.AreEqual("MicroHAPS.JTAG.A.State", (string)Body(handler.Last)["Name"]!);
         Assert.AreEqual("MicroHAPS", s!.Owner);
+        Assert.AreEqual("", s.Incarnation, "older firmware: no incarnation");
+        Assert.IsNull(s.Disturbed);
+    }
+
+    [TestMethod]
+    public async Task The_state_carries_the_ports_incarnation_and_disturbances()
+    {
+        var state = PortState.Replace("\"since\":\"2026-11-20T10:00:00.0000000Z\"}",
+            "\"since\":\"2026-11-20T10:00:00.0000000Z\",\"incarnation\":\"9f2c4e1a7b3d5f60\"," +
+            "\"disturbed\":{\"count\":7,\"why\":\"MicroHAPS's use: a POWER cycle\",\"since\":\"2026-11-08T15:02:00.0000000Z\"}}");
+        var (client, _) = Create((_, _) => Ok(new JObject { ["value"] = state }.ToString()));
+        JtagPortStateDto? s;
+        using (client)
+            s = await client.JtagPorts.GetStateAsync("MicroHAPS.JTAG.A");
+        Assert.AreEqual("9f2c4e1a7b3d5f60", s!.Incarnation);
+        Assert.AreEqual(7, s.Disturbed!.Count);
+        Assert.AreEqual("MicroHAPS's use: a POWER cycle", s.Disturbed.Why);
+        Assert.AreEqual(new DateTimeOffset(2026, 11, 8, 15, 2, 0, TimeSpan.Zero), s.Disturbed.Since);
     }
 
     [TestMethod]

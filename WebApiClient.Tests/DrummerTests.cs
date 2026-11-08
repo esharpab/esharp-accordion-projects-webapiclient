@@ -232,6 +232,118 @@ public class DrummerTests
         Assert.AreEqual("True", (string)Body(set)["Value"]!);
     }
 
+    // ---- The package library and build identity (the firmware's Drummer/PACKAGES.md section 8) ----
+
+    private const string Sha = "4f0c1a2b0000000000000000000000000000000000000000000000000000beef";
+
+    [TestMethod]
+    public async Task The_library_calls_read_and_write_their_Target_channels()
+    {
+        const string library = "{\"dir\":\"/home/accordion/drummer/library\",\"selection\":{\"source\":\"library\",\"sha256\":\"" + Sha + "\"},"
+                               + "\"packages\":[{\"sha256\":\"" + Sha + "\",\"file\":\"mh.drummer\",\"selected_by\":[\"Drummer\"],\"fpga_runs\":true}]}";
+        const string status = "{\"state\":\"connected\",\"build\":{\"rule\":\"marker\",\"runs_package\":true,\"text\":\"FPGA runs build unknown · package build none · ...\"}}";
+        var (client, handler) = Create((path, body) => (string?)body?["Name"] switch
+        {
+            "Drummer.Target.Library" => Ok(new JObject { ["value"] = library }.ToString()),
+            "Drummer.Target.Status" => Ok(new JObject { ["value"] = status }.ToString()),
+            _ => Ok("{}"),
+        });
+        JObject lib;
+        JObject? build;
+        using (client)
+        {
+            var t = client.Drummer.Target("Drummer");
+            lib = await t.LibraryAsync();
+            build = await t.BuildAsync();
+            await t.SelectPackageAsync(Sha);
+            await t.SelectPackageAsync("4F0C1A2B");
+            await t.UnselectPackageAsync();
+            await t.DeletePackageAsync(" 9a1b2c3d ");
+        }
+
+        Assert.AreEqual("library", (string)lib["selection"]!["source"]!);
+        Assert.AreEqual("Drummer", (string)lib["packages"]![0]!["selected_by"]![0]!);
+        Assert.AreEqual("marker", (string)build!["rule"]!);
+        Assert.IsTrue((bool)build["runs_package"]!);
+        var writes = handler.Requests.Where(r => r.Uri!.AbsolutePath == "/api/resources/value/set").Select(Body).ToList();
+        CollectionAssert.AreEqual(new[] { "Drummer.Target.Select", "Drummer.Target.Select", "Drummer.Target.Select", "Drummer.Target.Delete" },
+            writes.Select(w => (string)w["Name"]!).ToArray());
+        CollectionAssert.AreEqual(new[] { Sha, "4F0C1A2B", "", "9a1b2c3d" }, writes.Select(w => (string)w["Value"]!).ToArray());
+    }
+
+    [TestMethod]
+    public async Task A_SHA_256_text_that_is_not_8_to_64_hex_digits_is_refused_before_anything_is_sent()
+    {
+        var (client, handler) = Create((_, _) => Ok("{}"));
+        using (client)
+        {
+            var t = client.Drummer.Target("Drummer");
+            foreach (var bad in new[] { "4f0c", "../x", "4f0c 1a2b", "", new string('a', 65), "zzzzzzzz" })
+            {
+                await Assert.ThrowsExactlyAsync<ArgumentException>(() => t.SelectPackageAsync(bad), bad);
+                await Assert.ThrowsExactlyAsync<ArgumentException>(() => t.DeletePackageAsync(bad), bad);
+            }
+        }
+        Assert.AreEqual(0, handler.Requests.Count);
+    }
+
+    [TestMethod]
+    public async Task A_delete_refused_while_selected_is_a_409_naming_the_instances()
+    {
+        var (client, _) = Create((_, _) => RecordingHandler.Json(HttpStatusCode.Conflict,
+            "{\"error\":\"4f0c1a2b (mh.drummer) is selected by Drummer, DUT_A: select another package there first\"}"));
+        using (client)
+        {
+            var e = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() => client.Drummer.Target("Drummer").DeletePackageAsync(Sha));
+            Assert.AreEqual(409, e.StatusCode);
+            StringAssert.Contains(e.Message, "selected by Drummer, DUT_A");
+        }
+    }
+
+    [TestMethod]
+    public async Task BuildAsync_is_null_on_firmware_without_build_identity()
+    {
+        var (client, _) = Create((_, _) => Ok(new JObject { ["value"] = "{\"state\":\"connected\"}" }.ToString()));
+        using (client)
+            Assert.IsNull(await client.Drummer.Target("Drummer").BuildAsync());
+    }
+
+    [TestMethod]
+    public async Task UploadPackageAsync_posts_to_Target_Package_and_waits_until_it_is_kept_and_selected()
+    {
+        var handler = new RecordingHandler
+        {
+            Respond = r => r.Method == HttpMethod.Post
+                ? RecordingHandler.Json(HttpStatusCode.Accepted, "{\"state\":\"validating\"}")
+                : RecordingHandler.Json(HttpStatusCode.OK,
+                    "{\"state\":\"done\",\"message\":\"mh.drummer: kept in the library as 4f0c1a2b (new), selected; design microhaps_mem (0x00040000); connecting\"}"),
+        };
+        string file = Path.Combine(Path.GetTempPath(), $"drummer-{Guid.NewGuid():N}.drummer");
+        File.WriteAllBytes(file, [0x50, 0x4B, 3, 4]);
+        try
+        {
+            ByteStreamStatusDto status;
+            using (var client = new AccordionQ2Client(Url, new AccordionQ2ClientOptions { Handler = handler }))
+                status = await client.Drummer.Target("Drummer").UploadPackageAsync(file);
+            Assert.AreEqual("done", status.State);
+            StringAssert.Contains(status.Message, "kept in the library as 4f0c1a2b");
+            var post = handler.Requests[0];
+            Assert.AreEqual(HttpMethod.Post, post.Method);
+            Assert.AreEqual("/api/channels/bytestream", post.Uri!.AbsolutePath);
+            StringAssert.Contains(post.Uri.Query, "name=Drummer.Target.Package");
+            StringAssert.Contains(post.Uri.Query, "fileName=" + Path.GetFileName(file));
+            CollectionAssert.AreEqual(new byte[] { 0x50, 0x4B, 3, 4 }, post.Body);
+            var wait = handler.Requests[1];
+            Assert.AreEqual(HttpMethod.Get, wait.Method);
+            StringAssert.Contains(wait.Uri!.Query, "name=Drummer.Target.Package");
+            Assert.AreEqual(2, handler.Requests.Count, "done at the first status read");
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
     [TestMethod]
     public async Task FindAsync_takes_the_Drummer_instruments_else_Target_Status_beside_Target_Package()
     {

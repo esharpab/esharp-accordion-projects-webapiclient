@@ -37,6 +37,12 @@ what the page does. The operations, their arguments and their results are listed
 | `Net(name)` | `string` | `"Drummer." + name`. |
 | `GetPortAsync(ct?)` | `Task<string>` | `Target.Port`: the JTAG port bound now (`"MicroHAPS.JTAG.A"`), `""` when unbound. |
 | `BindPortAsync(port, ct?)` | `Task` | Binds the instance to that port now (`""` or null unbinds). 409 when another instance claims it, or while a load, the self-test or a job holds the TAP. Not saved: the module's `Port` setting is the binding at its next load. |
+| `LibraryAsync(ct?)` | `Task<JObject>` | `Target.Library`: the station's package library and this instance's selection (below). From the module's memory, no scan. |
+| `SelectPackageAsync(sha256, ct?)` | `Task` | `Target.Select`: selects a library package for this instance, by its SHA-256 or 8 or more of its first hex digits. |
+| `UnselectPackageAsync(ct?)` | `Task` | `Target.Select` = `""`: back to the `PackagePath` setting, or to no package. |
+| `DeletePackageAsync(sha256, ct?)` | `Task` | `Target.Delete`: deletes a library package. 409 while a configured instance selects it (the message names the instances). |
+| `UploadPackageAsync(path, timeout?, ct?)` | `Task<ByteStreamStatusDto>` | Uploads a `.drummer` package to `Target.Package` and waits until it is kept and selected (`done`) or refused (`failed`, returned). The connect and any load follow. |
+| `BuildAsync(ct?)` | `Task<JObject?>` | `Target.Status`'s `build`: which build the FPGA runs, which build the package has, which rule decided. Null on firmware without build identity. |
 
 A Drummer instance is named as it is configured in modules.config (`Drummer`, `DUT_A`): that name is its channels'
 prefix (`Drummer.Target.Status`) and `DrummerModuleRef.Prefix`. An instance whose port is held by someone else (an XVC
@@ -55,6 +61,47 @@ The ports are [`client.JtagPorts`](jtag-ports.md).
   "wait_ms": 10000}` until the job has ended. After `timeout` (60 s by default) it throws a `TimeoutException` that
   names the job's ticket; the job goes on in the module, and its result can be fetched with that ticket (only the
   caller that started the job has it; `Target.Jobs` shows the id before its dot) for 5 minutes after it ends.
+
+## The package library
+
+Firmware with the library (`Target.Library`; older firmware answers 404 for these channels). The station keeps every
+uploaded `.drummer` package once, by its SHA-256; each instance has one selected package, kept across restarts, and
+that is what it loads.
+
+```csharp
+var t = client.Drummer.Target("Drummer");
+
+// The developer flow: upload, and the station keeps it, selects it, loads its bitfile when the FPGA does not run that
+// build (LoadOnSelect mismatch), runs discovery and connects
+var up = await t.UploadPackageAsync(@"build\microhaps_mem.drummer");
+if (up.State != "done") throw new Exception(up.Message);    // refused: the old selection stays
+
+// The upload's wait ends at the selection: the connect and any load follow
+for (var s = await t.StatusAsync(); (string?)s["state"] is "connecting" or "loading"; s = await t.StatusAsync())
+    await Task.Delay(500);
+Console.WriteLine((await t.BuildAsync())?["text"]);
+// FPGA runs build unknown · package build none · the package's build: this station loaded ... (marker)
+
+// Back to a known-good build: one call
+var lib = await t.LibraryAsync();
+foreach (var p in lib["packages"]!)
+    Console.WriteLine($"{p["sha256"]!.ToString()[..8]} {p["file"]} {p["uploaded"]} {p["usr_access_time"]} selected by {p["selected_by"]}");
+await t.SelectPackageAsync("4f0c1a2b");
+
+await t.DeletePackageAsync("9a1b2c3d");                     // 409 while a configured instance selects it
+```
+
+`build.rule` says what decided whether the FPGA runs the package's build: `usr_access` (the FPGA's USR_ACCESS against
+the stamp in the bitfile, a bitfile built with `BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP`), `marker` (this station's
+record of what it loaded on the port, forgotten at anything it sees that may reconfigure the FPGA), `design_id`,
+`discovery`, `device`, or `neither` (`runs_package` null: can't tell). `Target.Status` also has `package` (what the
+instance runs), `load_on_select` and `warnings` (instruments without a register map in the package, driver versions,
+a bitfile held back).
+
+An instrument whose register map is not in the package is **opaque** (`"opaque": true` in `InfoAsync()`): it stays in the
+scan path, its `Snapshot` has its raw words, and only `read`, `scan` without fields, `reset_instrument` and
+`clear_errors` work on it. One whose class version has no driver (`"driver": "generic"`) has its register channels and
+the generic operations.
 
 ## Errors
 

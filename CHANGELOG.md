@@ -5,6 +5,27 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
+## [7.4.0] – 2026-11-08
+
+### Added
+
+- **The Drummer package library** (firmware with `Target.Library`): `DrummerTarget.LibraryAsync()`,
+  `SelectPackageAsync(sha256)` (a full SHA-256 or 8 or more of its first hex digits), `UnselectPackageAsync()`,
+  `DeletePackageAsync(sha256)` (409 while a configured instance selects it) and `UploadPackageAsync(path, timeout?)`
+  (`Channels.UploadByteStreamAsync` on `Target.Package`, then its wait: done when the package is kept and selected; the
+  connect and any load follow).
+- `DrummerTarget.BuildAsync()`: `Target.Status`'s `build` (which build the FPGA runs, which build the package has,
+  which rule decided).
+- `JtagPortStateDto.Incarnation` and `Disturbed` (`JtagDisturbedDto`: `Count`, `Why`, `Since`): what may have
+  reconfigured the FPGA behind the port.
+
+### Compatibility
+
+- Source and binary compatible with 7.3.0. Against firmware without `Target.Library` the library calls throw the
+  station's 404 for an unknown channel; `BuildAsync` returns null; `Incarnation` is empty and `Disturbed` null.
+
+---
+
 ## [7.3.0] – 2026-11-08
 
 ### Added

@@ -24,12 +24,14 @@ public sealed class DrummerGroup : ApiGroupBase
 {
     private readonly ResourcesGroup _resources;
     private readonly InstrumentsGroup _instruments;
+    private readonly ChannelsGroup _channels;
     private readonly TransactCheck _check;
 
     internal DrummerGroup(ApiTransport transport) : base(transport)
     {
         _resources = new ResourcesGroup(transport);
         _instruments = new InstrumentsGroup(transport);
+        _channels = new ChannelsGroup(transport);
         _check = new TransactCheck(new CapabilitiesGroup(transport));
     }
 
@@ -76,7 +78,7 @@ public sealed class DrummerGroup : ApiGroupBase
     public DrummerTarget Target(string prefix)
     {
         if (string.IsNullOrWhiteSpace(prefix)) throw new ArgumentException("give the module's prefix, e.g. \"Drummer\"", nameof(prefix));
-        return new DrummerTarget(prefix.Trim().TrimEnd('.'), _resources, _check);
+        return new DrummerTarget(prefix.Trim().TrimEnd('.'), _resources, _check, _channels);
     }
 }
 
@@ -122,13 +124,18 @@ public sealed class DrummerTarget
 
     private readonly ResourcesGroup _resources;
     private readonly TransactCheck _check;
+    private readonly ChannelsGroup? _channels;
 
-    internal DrummerTarget(string prefix, ResourcesGroup resources, TransactCheck check)
+    internal DrummerTarget(string prefix, ResourcesGroup resources, TransactCheck check, ChannelsGroup? channels = null)
     {
         Prefix = prefix;
         _resources = resources;
         _check = check;
+        _channels = channels;
     }
+
+    /// <summary>How long <see cref="UploadPackageAsync"/> waits for the package to be kept and selected when no timeout is given.</summary>
+    public static readonly TimeSpan UploadTimeout = TimeSpan.FromSeconds(60);
 
     /// <summary>The instance's name, its channels' prefix: "Drummer".</summary>
     public string Prefix { get; }
@@ -210,6 +217,82 @@ public sealed class DrummerTarget
     /// </summary>
     public Task BindPortAsync(string? port, CancellationToken ct = default) =>
         WriteAsync("Target.Port", port?.Trim() ?? string.Empty, ct);
+
+    // -- the package library and build identity (firmware's Drummer/PACKAGES.md) -------------------
+
+    /// <summary>
+    /// <c>Target.Library</c>: the station's package library and this instance's selection, from the module's memory (no
+    /// scan): <c>dir</c>, <c>bytes</c>, <c>free_bytes</c>, <c>floor_bytes</c>, <c>selection</c> (<c>source</c> "library",
+    /// "PackagePath" or "none", with <c>sha256</c>, <c>file</c>, <c>how</c>, <c>at</c>, <c>by</c>) and <c>packages</c>,
+    /// newest upload first (each entry's <c>sha256</c>, <c>file</c>, <c>design</c>, <c>design_id</c>, <c>usr_access</c>,
+    /// <c>usr_access_time</c>, <c>size</c>, <c>uploaded</c>, <c>uploaded_by</c>, <c>selected_by</c>,
+    /// <c>stale_selected_by</c>, <c>fpga_runs</c>). 404 on firmware without the library.
+    /// </summary>
+    public async Task<JObject> LibraryAsync(CancellationToken ct = default) =>
+        ParseObject(await ReadAsync("Target.Library", ct).ConfigureAwait(false), "Target.Library");
+
+    /// <summary>
+    /// Selects a library package for this instance (<c>Target.Select</c>, Operator): its full SHA-256 or 8 or more of
+    /// its first hex digits. The selection is kept across restarts; the design's channels are built again, and under
+    /// the module's <c>LoadOnSelect</c> (default <c>mismatch</c>) its bitfile is loaded when the FPGA does not run that
+    /// build or the station can't tell. The write returns before the connect; follow <see cref="StatusAsync"/> (its
+    /// <c>build</c>) and <c>Target.LoadStatus</c>. 400 for an unknown or ambiguous one or a package that does not load
+    /// (the old selection stays); 409 while a bitfile load or the self-test runs, or the JTAG is held.
+    /// </summary>
+    /// <exception cref="ArgumentException">Not 8 to 64 hex digits; nothing was sent.</exception>
+    public Task SelectPackageAsync(string sha256, CancellationToken ct = default) =>
+        WriteAsync("Target.Select", ShaText(sha256, nameof(sha256)), ct);
+
+    /// <summary>
+    /// Unselects (<c>Target.Select</c> = <c>""</c>): the instance falls back to its <c>PackagePath</c> setting (under
+    /// <c>LoadOnSelect</c>), or to no package (the design's channels go, nothing is loaded). 409 as a select.
+    /// </summary>
+    public Task UnselectPackageAsync(CancellationToken ct = default) => WriteAsync("Target.Select", string.Empty, ct);
+
+    /// <summary>
+    /// Deletes a package from the station's library (<c>Target.Delete</c>, Operator): a full SHA-256 or 8 or more of its
+    /// first hex digits. 409 while a configured instance selects it (the message names the instances: select another
+    /// package there first); 400 for an unknown or ambiguous one. It can't be undone: upload the file again.
+    /// </summary>
+    /// <exception cref="ArgumentException">Not 8 to 64 hex digits; nothing was sent.</exception>
+    public Task DeletePackageAsync(string sha256, CancellationToken ct = default) =>
+        WriteAsync("Target.Delete", ShaText(sha256, nameof(sha256)), ct);
+
+    /// <summary>
+    /// Uploads a <c>.drummer</c> package to this instance (<c>Target.Package</c>, the developer flow): the station checks
+    /// it, keeps it in its library, selects it and, under <c>LoadOnSelect</c> <c>mismatch</c>, loads its bitfile when the
+    /// FPGA does not run that build, then discovers and connects. Returns when the package is kept and selected (the
+    /// status <c>done</c>, its <c>Message</c> naming the library entry) or refused (<c>failed</c>, returned, not thrown,
+    /// with the reason); the connect and any load follow: <see cref="StatusAsync"/>, <see cref="BuildAsync"/>,
+    /// <c>Target.LoadStatus</c>. Throws <see cref="AccordionQ2ApiException"/> as
+    /// <see cref="ChannelsGroup.UploadByteStreamAsync(string, string, string, bool, CancellationToken)"/> does, and
+    /// <see cref="TimeoutException"/> after <paramref name="timeout"/> (default 60 s).
+    /// </summary>
+    public async Task<ByteStreamStatusDto> UploadPackageAsync(string path, TimeSpan? timeout = null, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("give the .drummer package's path", nameof(path));
+        if (_channels is null) throw new InvalidOperationException("this DrummerTarget was not made by client.Drummer.Target(prefix)");
+        string channel = Net("Target.Package");
+        await _channels.UploadByteStreamAsync(channel, path, ct: ct).ConfigureAwait(false);
+        return await _channels.WaitByteStreamAsync(channel, timeout ?? UploadTimeout, ct: ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// <c>Target.Status</c>'s <c>build</c>: which build the FPGA runs and which the selected package has, and which rule
+    /// decided (<c>fpga</c>, <c>package</c>, <c>marker</c>, <c>held_back</c>, <c>runs_package</c> true, false or null,
+    /// <c>rule</c>, <c>text</c>, <c>checked</c>, <c>stale</c>). Null on firmware without build identity.
+    /// </summary>
+    public async Task<JObject?> BuildAsync(CancellationToken ct = default) =>
+        (await StatusAsync(ct).ConfigureAwait(false))["build"] as JObject;
+
+    /// <summary>A SHA-256 or 8+ of its first hex digits, as Target.Select and Target.Delete take it.</summary>
+    internal static string ShaText(string? sha256, string param)
+    {
+        string s = sha256?.Trim() ?? string.Empty;
+        if (s.Length < 8 || s.Length > 64 || !s.All(Uri.IsHexDigit))
+            throw new ArgumentException($"\"{s}\" is not a SHA-256: give the package's SHA-256 or 8 or more of its first hex digits", param);
+        return s;
+    }
 
     /// <summary>A field or semantic channel below the module ("GPIO.GPIO8", "CLK.Freq0"). A semantic read may scan: see the
     /// firmware's drummer.md for what each costs.</summary>

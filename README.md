@@ -367,7 +367,7 @@ without it, `NotSupportedException` and nothing is sent. **409 means busy, try a
 | Method | Description |
 |---|---|
 | `FindAsync()` | The Drummer modules (`DrummerModuleRef`: `Prefix`, `Name`) |
-| `Target(prefix)` | A `DrummerTarget`: `CallAsync(instrument, name, args)`, `ModuleCallAsync(name, args)`, `StatusAsync`, `InfoAsync`, `AttentionAsync`, `JobsAsync`, `SnapshotAsync(instrument)`, `ReadAsync(name)`, `WriteAsync(name, value)`, `GetPortAsync()`, `BindPortAsync(port)` |
+| `Target(prefix)` | A `DrummerTarget`: `CallAsync(instrument, name, args)`, `ModuleCallAsync(name, args)`, `StatusAsync`, `InfoAsync`, `AttentionAsync`, `JobsAsync`, `SnapshotAsync(instrument)`, `ReadAsync(name)`, `WriteAsync(name, value)`, `GetPortAsync()`, `BindPortAsync(port)`, the package library (`LibraryAsync()`, `SelectPackageAsync(sha256)`, `UnselectPackageAsync()`, `DeletePackageAsync(sha256)`, `UploadPackageAsync(path)`) and `BuildAsync()` (which build the FPGA runs) |
 
 ```csharp
 var t = client.Drummer.Target("Drummer");

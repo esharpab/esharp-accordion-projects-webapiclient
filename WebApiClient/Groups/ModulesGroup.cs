@@ -32,6 +32,14 @@ public sealed class ModulesGroup : ApiGroupBase
     public Task<PhysicalSystemDto> GetPhysicalSystemAsync(CancellationToken ct = default)
         => GetAsync<PhysicalSystemDto>("api/modules/physical-system", ct);
 
+    /// <summary>
+    /// Every module present: the hardware in the backplane (by slot) and the software modules loaded (by name), as the
+    /// Web UI's status bar lists them (<c>GET /api/modules/present</c>). Firmware without it answers 404
+    /// (<see cref="AccordionQ2ApiException"/>); <see cref="GetPhysicalSystemAsync"/> then lists the hardware.
+    /// </summary>
+    public Task<List<ModulePresenceDto>> GetPresentAsync(CancellationToken ct = default)
+        => GetAsync<List<ModulePresenceDto>>("api/modules/present", ct);
+
     /// <summary>Returns licensed applications only.</summary>
     public Task<List<AppLicenseDto>> GetLicensedAppsAsync(CancellationToken ct = default)
         => GetAsync<List<AppLicenseDto>>("api/modules/apps/licensed", ct);

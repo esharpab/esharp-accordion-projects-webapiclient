@@ -1,6 +1,6 @@
 # API Overview
 
-`AccordionQ2Client` exposes **eighteen operation groups**, each covering one area of the hardware API. All methods are **asynchronous** and throw `AccordionQ2ApiException` on HTTP errors.
+`AccordionQ2Client` exposes **nineteen operation groups**, each covering one area of the hardware API. All methods are **asynchronous** and throw `AccordionQ2ApiException` on HTTP errors.
 
 ```csharp
 using AccordionQ2.WebApiClient;
@@ -18,6 +18,8 @@ client.NumericResults  // Fast numeric sampling & statistics
 client.Calibration     // Calibration channel read/write
 client.Audit           // WebApi request audit log
 client.Instruments     // Instruments and their function maps
+client.Drummer         // FPGA instruments over JTAG (Drummer modules)
+client.JtagPorts       // JTAG ports: their state, holder and XVC switch
 client.Capabilities    // What the WebApi supports
 client.Events          // The event stream
 client.Subscriptions   // Channel values pushed over the event stream
@@ -40,6 +42,8 @@ client.Firmware        // Firmware releases and updates
 | [Calibration](calibration.md) | `client.Calibration` | Read and write Calibration channel tables | [→](calibration.md) |
 | [Audit](audit.md) | `client.Audit` | Read the WebApi's request audit log | [→](audit.md) |
 | [Instruments](instruments.md) | `client.Instruments` | Instruments (power supplies, meters) and their function maps | [→](instruments.md) |
+| [Drummer](drummer.md) | `client.Drummer` | FPGA instruments over JTAG: operations, jobs, snapshots, semantic channels | [→](drummer.md) |
+| [JTAG ports](jtag-ports.md) | `client.JtagPorts` | The station's JTAG ports: state, holder, bound instance, XVC switch | [→](jtag-ports.md) |
 | [Capabilities](capabilities.md) | `client.Capabilities` | API and codec versions, supported features | [→](capabilities.md) |
 | [Events](events.md) | `client.Events` | Event stream: connection, configuration and lease changes | [→](events.md) |
 | [Subscriptions](events.md#subscriptions) | `client.Subscriptions` | Channel values pushed over the event stream | [→](events.md#subscriptions) |

@@ -71,6 +71,12 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>Files in the station's own folders (contract section 10).</summary>
     public FilesGroup Files { get; }
 
+    /// <summary>The Drummer modules: FPGA instruments over JTAG, their operations and channels (firmware with resources.transact).</summary>
+    public DrummerGroup Drummer { get; }
+
+    /// <summary>The station's JTAG ports: their state and their XVC switch (firmware with stable module names).</summary>
+    public JtagPortsGroup JtagPorts { get; }
+
     /// <summary>The header that carries the station API key.</summary>
     public const string ApiKeyHeader = "X-Api-Key";
 
@@ -160,6 +166,8 @@ public sealed class AccordionQ2Client : IDisposable
         Firmware       = new FirmwareGroup(transport);
         Files          = new FilesGroup(transport);
         Instruments    = new InstrumentsGroup(transport);
+        Drummer        = new DrummerGroup(transport);
+        JtagPorts      = new JtagPortsGroup(transport);
     }
 
     /// <summary>

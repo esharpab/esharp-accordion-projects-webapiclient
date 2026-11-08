@@ -5,6 +5,69 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
+## [7.3.0] – 2026-11-08
+
+### Added
+
+- **Stable module names** (firmware with `names.stable` in its capabilities): a software module's net names start with
+  its configured name (`MicroHAPS.HCI.Scan`, `Drummer.Target.Status`) instead of a load-order number
+  (`1.MicroHAPS.HCI.Scan`); hardware keeps its slot address (`0.2.ESH10000560.CH1`).
+- `Modules.GetPresentAsync()` (`GET /api/modules/present`): every module present, the hardware in the backplane by slot
+  and the software modules loaded by name (`ModulePresenceDto`: `Kind`, `Address`, `Prefix`, `Name`, `ProductId`,
+  `Revision`, `SerialNumber`, `ClassName`). A module's channels are those whose net name starts with `Prefix + "."`.
+- **`client.JtagPorts`** (`JtagPortsGroup`): the station's JTAG ports, found by their State channels (Unit `jtag-port`).
+  `GetAllAsync()` with each port's state (`JtagPortDto`, `JtagPortStateDto`: free, held or down, the holder, the bound
+  Drummer instance, the XVC server), `GetStateAsync(port)`, `SetXvcAsync(port, on)` (Admin). docs/api/jtag-ports.md.
+- `DrummerTarget.GetPortAsync()` and `BindPortAsync(port)`: the instance's `Target.Port` (409 when another instance
+  claims the port).
+- `CapabilitiesDto.Names` (`NamesCapabilityDto`: `Stable`, `OldNamesAccepted`, `Legacy` with the old names' map), for a
+  client that translates the names it stored.
+
+### Changed
+
+- The examples and docs use the stable names: `Drummer.LA.Call` for `3.Drummer.LA.Call`, `Drummer.GPIO.GPIO0` for a
+  GPIO pin, `MicroHAPS.JTAG.FPGA_IMAGE`. `DrummerGroup.FindAsync()` is unchanged: it finds the instances by their
+  Instrument channel, whatever they are named.
+
+### Compatibility
+
+- Source and binary compatible with 7.2.0. `GetPresentAsync` answers 404 on firmware before stable names
+  (`GetPhysicalSystemAsync` lists the hardware there); `JtagPorts.GetAllAsync` is empty there, and `Names` is null.
+- A script that stored old net names and compares them with `Channels.GetAllAsync()` finds no match on the new
+  firmware: the station accepts an old name in a request (with a warning line and the header `X-Accordion-Old-Names`)
+  for two releases, but a list comparison never meets that translation.
+
+---
+
+## [7.2.0] – 2026-11-07
+
+### Added
+
+- **`client.Drummer`** (`DrummerGroup`, `DrummerModuleRef` and `DrummerTarget`, in `AccordionQ2.WebApiClient.Groups`):
+  the Drummer modules, which reach IEEE 1687 instruments in an FPGA over JTAG. `FindAsync()` lists them (by the
+  Instrument of type `Drummer`, else by `Target.Status` beside `Target.Package`); `Target("3.Drummer")` gives one.
+- `DrummerTarget.CallAsync(instrument, name, args, timeout)` runs an instrument operation (`clock_measure`, `mmcm_set`,
+  `mem_start`, ...) as a transaction on its Call channel (`3.Drummer.MEM.Call`) and returns the result as a `JObject`
+  (with the module's `ms` and `seq`). The instrument is a segment or a SIB (`"MEM"`, `"SIB_MEM"`). An operation that
+  becomes a job is followed (`{"call": "job"}`, `wait_ms` 10000) to its end; after the timeout (60 s by default) a
+  `TimeoutException` names the job's id, and the job goes on in the module. `ModuleCallAsync(name, args)` for
+  `Target.Call`.
+- `DrummerTarget.StatusAsync`, `InfoAsync`, `AttentionAsync`, `JobsAsync`, `SnapshotAsync(instrument)`,
+  `ReadAsync(name)`, `WriteAsync(name, value)` and `Net(name)`.
+- `CapabilitiesDto.ResourcesTransact` (`"resources.transact"`): transactions on any channel for Operator (Admin on bus
+  channels), answers not cached, a busy target answers 409.
+- docs/api/drummer.md.
+
+### Compatibility
+
+- The Drummer calls check `resources.transact` first (kept for 60 s, asked again after a failed call). Without it
+  (older firmware runs transactions for Admin only, under the engine lock) they throw `NotSupportedException` and send
+  nothing.
+- A 409 (`AccordionQ2ApiException.StatusCode` 409) is a busy target: try again.
+- Source and binary compatible with 7.1.0.
+
+---
+
 ## [7.1.0] – 2026-10-28
 
 ### Added

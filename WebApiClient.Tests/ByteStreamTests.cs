@@ -10,7 +10,7 @@ namespace AccordionQ2.WebApiClient.Tests;
 public class ByteStreamTests
 {
     private const string Url = "http://station:5000";
-    private const string Channel = "1.MicroHAPS.JTAG.FPGA_IMAGE";
+    private const string Channel = "MicroHAPS.JTAG.FPGA_IMAGE";
 
     private static (AccordionQ2Client Client, RecordingHandler Handler) Create(string? key = null)
     {
@@ -34,7 +34,7 @@ public class ByteStreamTests
         var r = handler.Last;
         Assert.AreEqual(HttpMethod.Post, r.Method);
         Assert.AreEqual("/api/channels/bytestream", r.Uri!.AbsolutePath);
-        StringAssert.Contains(r.Uri.Query, "name=1.MicroHAPS.JTAG.FPGA_IMAGE");
+        StringAssert.Contains(r.Uri.Query, "name=MicroHAPS.JTAG.FPGA_IMAGE");
         StringAssert.Contains(r.Uri.Query, "fileName=top.bit");
         StringAssert.Contains(r.Uri.Query, "target=sram");
         Assert.IsFalse(r.Uri.Query.Contains("force"));
@@ -109,7 +109,7 @@ public class ByteStreamTests
             Assert.IsTrue(status.Image.Loaded);
         }
         Assert.AreEqual(3, handler.Requests.Count);
-        Assert.IsTrue(handler.Requests.All(r => r.Method == HttpMethod.Get && r.Uri!.Query.Contains("name=1.MicroHAPS.JTAG.FPGA_IMAGE")));
+        Assert.IsTrue(handler.Requests.All(r => r.Method == HttpMethod.Get && r.Uri!.Query.Contains("name=MicroHAPS.JTAG.FPGA_IMAGE")));
     }
 
     [TestMethod]

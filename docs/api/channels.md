@@ -164,17 +164,17 @@ if (caps.Has(CapabilitiesDto.ChannelsEncoded))
 MicroHAPS has a ByteStream channel `JTAG.FPGA_IMAGE` (Unit `file:FPGA image`). It takes a file, not a value: the
 client streams the file to `POST /api/channels/bytestream`, and the station checks it and loads it into the KU5P's
 SRAM with openFPGALoader, without Vivado and whether or not the XVC server is on. `Resources.SetValuesAsync` on this
-channel is refused (400). Loading needs the Operator role, as switching `XVC_ENABLE` on does: the station checks the
+channel is refused (400). Loading needs the Operator role: the station checks the
 part (XCKU5P-FFVB676) and the IDCODE, not what the design drives. Writing the configuration flash is not in 7.0.5
 (`target: "flash"` gives 501).
 
 ```csharp
-var status = await client.Channels.UploadByteStreamAsync("1.MicroHAPS.JTAG.FPGA_IMAGE", @"C:\builds\hci_mig_top.bit");
-status = await client.Channels.WaitByteStreamAsync("1.MicroHAPS.JTAG.FPGA_IMAGE", TimeSpan.FromMinutes(2));
+var status = await client.Channels.UploadByteStreamAsync("MicroHAPS.JTAG.FPGA_IMAGE", @"C:\builds\hci_mig_top.bit");
+status = await client.Channels.WaitByteStreamAsync("MicroHAPS.JTAG.FPGA_IMAGE", TimeSpan.FromMinutes(2));
 if (status.State != "done")
     throw new Exception(status.Message);                    // e.g. "...is for xcku3p-ffva676-1-e, not the XCKU5P..."
 Console.WriteLine($"{status.Image!.FileName} {status.Image.Sha256} in {status.Image.DurationMs} ms");
-await client.Resources.SetValueAsync("1.MicroHAPS.HCI.Scan", "True");   // the new design's HCI devices
+await client.Resources.SetValueAsync("MicroHAPS.HCI.Scan", "True");   // the new design's HCI devices
 ```
 
 | Status | When |

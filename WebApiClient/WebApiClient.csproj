@@ -13,7 +13,7 @@
     <!-- NuGet package metadata -->
     <IsPackable>true</IsPackable>
     <PackageId>AccordionQ2.WebApiClient</PackageId>
-    <Version>7.1.0</Version>
+    <Version>7.3.0</Version>
     <Authors>E-Sharp AB</Authors>
     <Company>E-Sharp AB</Company>
     <Description>HTTP client library for the AccordionQ2 Hardware Management REST API.</Description>
@@ -22,7 +22,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>7.1.0: ChannelConfigRequest.Value (with WithValue(double)/WithValue(bool)) sets an output's value in the same configure as its direction and type, so an MPIO switched from input to output doesn't drive its last reading first. Needs firmware 7.0.5 or later; older firmware ignores the field. Otherwise the same as 7.0.0: https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <PackageReleaseNotes>7.3.0: stable module names: Modules.GetPresentAsync (the modules present, hardware and software), client.JtagPorts (the JTAG ports, their state and XVC switch), DrummerTarget.GetPortAsync and BindPortAsync, CapabilitiesDto.Names. 7.2.0: client.Drummer: find the Drummer modules (FPGA instruments over JTAG) and run their operations (Target(prefix).CallAsync("MEM", "mem_start", args)) as transactions on their Call channels, following long ones as jobs; status, info, attention, jobs, snapshots, field and semantic channels. Needs firmware with the resources.transact capability; otherwise the same as 7.1.0: https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient</PackageProjectUrl>
     <RepositoryUrl>https://github.com/esharpab/esharp-accordion-projects-webapiclient.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

@@ -12,6 +12,7 @@ Manage hardware and software modules, query the hardware topology, and view appl
 | `UnloadAsync(module, ct?)` | `Task` | Unload a module. |
 | `ConfigureAsync(module, ct?)` | `Task` | Update module configuration. |
 | `GetPhysicalSystemAsync(ct?)` | `Task<PhysicalSystemDto>` | Hardware topology (host, MAC, firmware, modules). |
+| `GetPresentAsync(ct?)` | `Task<List<ModulePresenceDto>>` | Every module present: the hardware in the backplane by slot, then the software modules loaded by name, as the Web UI's status bar lists them. Firmware with stable module names (404 before: use `GetPhysicalSystemAsync`). |
 | `GetLicensedAppsAsync(ct?)` | `Task<List<AppLicenseDto>>` | Licensed applications only. |
 | `GetAllAppsAsync(ct?)` | `Task<List<AppLicenseDto>>` | All applications (licensed and unlicensed). |
 
@@ -28,6 +29,22 @@ foreach (var mod in system.Modules)
 
 foreach (var (iface, addr) in system.NetworkInterfaces)
     Console.WriteLine($"  {iface}: {addr}");
+```
+
+### The Modules Present
+
+A software module's net names start with its configured name (`MicroHAPS.HCI.Scan`, `Drummer.Target.Status`), a
+hardware module's with its slot path and product (`0.2.ESH10000560.CH1`). `Prefix` is that start, so a module's
+channels are those whose net name starts with `Prefix + "."`:
+
+```csharp
+var present = await client.Modules.GetPresentAsync();
+var channels = await client.Channels.GetAllAsync();
+foreach (var m in present)
+{
+    int count = channels.Count(c => c.NetName.StartsWith(m.Prefix + ".", StringComparison.OrdinalIgnoreCase));
+    Console.WriteLine(m.IsHardware ? $"  {m.Address} {m.Name} ({m.ProductId}): {count} channels" : $"  {m.Name} ({m.ClassName}): {count} channels");
+}
 ```
 
 ### Listing Loaded Modules
@@ -92,6 +109,17 @@ foreach (var app in await client.Modules.GetLicensedAppsAsync())
 | `ProductID` | `string` | Product identifier |
 | `Revision` | `byte` | Hardware revision |
 | `SerialNumber` | `string` | Serial number |
+
+### `ModulePresenceDto`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Kind` | `string` | `"hardware"` or `"software"` (`IsHardware`) |
+| `Address` | `string` | The slot path (`"0.2"`) or the configured name (`"MicroHAPS"`): what the Web UI's `channels?module=` takes |
+| `Prefix` | `string` | What its net names start with: `"0.2.ESH10000560"`, `"MicroHAPS"` |
+| `Name` | `string` | The product name (hardware) or the module's name (software) |
+| `ProductId`, `Revision`, `SerialNumber` | | Hardware only; null for software |
+| `ClassName` | `string?` | Software only: `"MicroHapsHandler.MicroHaps"` |
 
 ### `AppLicenseDto`
 

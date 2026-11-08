@@ -18,6 +18,14 @@ public class CapabilitiesDto
     /// </summary>
     public const string ValuesCacheOnly = "values.cacheOnly";
 
+    /// <summary>
+    /// Feature name: <c>POST /api/resources/transact</c> works on any channel for Operator (Admin on bus channels), its
+    /// answer is not cached, a module may serve it without the engine lock, and a busy target answers 409. The Drummer
+    /// operations need it (<see cref="Groups.DrummerTarget.CallAsync"/>); older firmware runs transactions for Admin
+    /// only, under the engine lock.
+    /// </summary>
+    public const string ResourcesTransact = "resources.transact";
+
     /// <summary>The contract version; 0 for a WebApi that predates it.</summary>
     public int ApiVersion { get; set; }
 
@@ -36,6 +44,13 @@ public class CapabilitiesDto
     /// <c>Off</c> from a WebApi that predates it. A string, so a mode added later doesn't break reading.
     /// </summary>
     public string SecurityMode { get; set; } = "Off";
+
+    /// <summary>
+    /// How the station names modules in net names: <see cref="NamesCapabilityDto.Stable"/> when a software module's
+    /// names start with its configured name (<c>MicroHAPS.HCI.Scan</c>) instead of a load-order number
+    /// (<c>1.MicroHAPS.HCI.Scan</c>). Null from a WebApi before stable names.
+    /// </summary>
+    public NamesCapabilityDto? Names { get; set; }
 
     /// <summary>Whether the WebApi has <paramref name="feature"/>, e.g. <see cref="Events"/>.</summary>
     public bool Has(string feature) => Array.IndexOf(Features, feature) >= 0;
@@ -198,4 +213,35 @@ public class NumericStatsDto
     /// <summary>Set when both limits were given.</summary>
     public double? Cp { get; set; }
     public double? Cpk { get; set; }
+}
+
+/// <summary>The <c>names</c> of <c>GET /api/capabilities</c>: stable module names and the old names' translation.</summary>
+public class NamesCapabilityDto
+{
+    /// <summary>A software module's net names start with its configured name (<c>MicroHAPS.HCI.Scan</c>).</summary>
+    public bool Stable { get; set; }
+
+    /// <summary>
+    /// The station still accepts an old load-order name (<c>1.MicroHAPS.HCI.Scan</c>), with a warning line and the
+    /// response header <c>X-Accordion-Old-Names</c>; false once old names are refused.
+    /// </summary>
+    public bool OldNamesAccepted { get; set; }
+
+    /// <summary>What a client translates the names it stored with (null when the station gives none).</summary>
+    public LegacyNamesDto? Legacy { get; set; }
+}
+
+/// <summary>
+/// The old names' translation map: an old name's first segment (a number 1..255) is dropped when the rest starts with
+/// a key of <see cref="Prefixes"/>, which is then replaced by its value; else, when the next segment is a number too,
+/// the first goes through <see cref="Positions"/> (<c>5.0.ESH10000028.x</c> → <c>ModuleForwarder.0.ESH10000028.x</c>).
+/// </summary>
+public class LegacyNamesDto
+{
+    /// <summary>Old prefixes (without their number) and what they are now: <c>"MicroHAPS": "MicroHAPS"</c>,
+    /// <c>"MicroHAPS_PMBUS_LTPP": "MicroHAPS.MicroHAPS_PMBUS_LTPP"</c>.</summary>
+    public Dictionary<string, string> Prefixes { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>Each loaded software module's load position (as text, <c>"5"</c>) and its name.</summary>
+    public Dictionary<string, string> Positions { get; set; } = new Dictionary<string, string>();
 }

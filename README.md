@@ -74,8 +74,8 @@ Comprehensive API documentation is available in the [`docs/`](https://github.com
 - [Getting Started / Installation](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/getting-started/installation.md)
 - [Quick Start](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/getting-started/quickstart.md)
 - [Security](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/security.md) — API keys, HTTPS with a pinned certificate, IPv6 addresses
-- [API Overview](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/overview.md) — all 18 operation groups at a glance
-- Group pages: [Resources](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/resources.md), [Channels](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/channels.md), [Modules](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/modules.md), [Application](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/application.md), [Media](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/media.md), [Connection](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/connection.md), [Comm](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/comm.md), [Numeric Results](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/numeric-results.md), [Calibration](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/calibration.md), [Audit](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/audit.md), [Instruments](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/instruments.md), [Capabilities](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/capabilities.md), [Events and Subscriptions](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/events.md), [Lease](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/lease.md), [System](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/system.md), [Files](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/files.md), [Firmware](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/firmware.md)
+- [API Overview](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/overview.md) — all 19 operation groups at a glance
+- Group pages: [Resources](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/resources.md), [Channels](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/channels.md), [Modules](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/modules.md), [Application](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/application.md), [Media](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/media.md), [Connection](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/connection.md), [Comm](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/comm.md), [Numeric Results](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/numeric-results.md), [Calibration](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/calibration.md), [Audit](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/audit.md), [Instruments](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/instruments.md), [Drummer](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/drummer.md), [Capabilities](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/capabilities.md), [Events and Subscriptions](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/events.md), [Lease](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/lease.md), [System](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/system.md), [Files](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/files.md), [Firmware](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/firmware.md)
 - [Error Handling](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/error-handling.md)
 - [Models Reference](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/reference/models.md)
 - [Enums Reference](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/reference/enums.md)
@@ -84,7 +84,7 @@ Comprehensive API documentation is available in the [`docs/`](https://github.com
 
 ## API Reference
 
-`AccordionQ2Client` exposes eighteen operation groups: `Resources`, `Channels`, `Modules`, `Application`, `Media`, `Connection`, `Comm`, `NumericResults`, `Calibration`, `Audit`, `Instruments`, `Capabilities`, `Events`, `Subscriptions`, `Lease`, `System`, `Files` and `Firmware`. The groups from `Instruments` on need a WebApi that has them; older firmware answers 404 (`Capabilities.GetAsync` returns `CapabilitiesDto.None` instead).
+`AccordionQ2Client` exposes nineteen operation groups: `Resources`, `Channels`, `Modules`, `Application`, `Media`, `Connection`, `Comm`, `NumericResults`, `Calibration`, `Audit`, `Instruments`, `Drummer`, `Capabilities`, `Events`, `Subscriptions`, `Lease`, `System`, `Files` and `Firmware`. The groups from `Instruments` on need a WebApi that has them; older firmware answers 404 (`Capabilities.GetAsync` returns `CapabilitiesDto.None` instead).
 
 ### `client.Resources` — Hardware resource values
 
@@ -175,6 +175,7 @@ Console.WriteLine(string.Join(", ", wave.Details?.DestinationNets ?? [])); // SI
 | `UnloadAsync(module)` | Unload a module |
 | `ConfigureAsync(module)` | Configure a module |
 | `GetPhysicalSystemAsync()` | Hardware topology description |
+| `GetPresentAsync()` | Every module present, as the Web UI's status bar lists them: hardware by slot, then software by name (`ModulePresenceDto`: `Kind`, `Address`, `Prefix`, `Name`, ...). Firmware with stable module names; 404 before |
 | `GetLicensedAppsAsync()` | Licensed applications only |
 | `GetAllAppsAsync()` | All applications (licensed and unlicensed) |
 
@@ -352,6 +353,51 @@ await client.Resources.SetValuesAsync(new Dictionary<string, string>
 });
 await client.Resources.SetValueAsync(supply.FunctionMap["OUTPUT_ENABLE"], "True");
 ```
+
+---
+
+### `client.Drummer` — FPGA instruments over JTAG
+
+A Drummer module reaches IEEE 1687 instruments in an FPGA (GPIO, block RAM, clock counters, MMCMs, I2C, logic
+analysers, link testers, memory PHYs). Each instrument operation the station's Web UI has is a transaction on the
+instrument's Call channel; `CallAsync` sends it, follows a long one as a job, and returns its result as a `JObject`.
+An instrument is a segment or a SIB (`"MEM"`, `"SIB_MEM"`). Needs firmware with the `resources.transact` capability;
+without it, `NotSupportedException` and nothing is sent. **409 means busy, try again**: something else holds the JTAG.
+
+| Method | Description |
+|---|---|
+| `FindAsync()` | The Drummer modules (`DrummerModuleRef`: `Prefix`, `Name`) |
+| `Target(prefix)` | A `DrummerTarget`: `CallAsync(instrument, name, args)`, `ModuleCallAsync(name, args)`, `StatusAsync`, `InfoAsync`, `AttentionAsync`, `JobsAsync`, `SnapshotAsync(instrument)`, `ReadAsync(name)`, `WriteAsync(name, value)`, `GetPortAsync()`, `BindPortAsync(port)` |
+
+```csharp
+var t = client.Drummer.Target("Drummer");
+var r = await t.CallAsync("CLK", "clock_measure", new { gate = 1_200_000, channel = 1 });   // {count, hz, ms, seq}
+await t.WriteAsync("GPIO.GPIO0", "True");
+```
+
+A Drummer instance is named as it is configured (`Drummer`, `DUT_A`): its channels are `Drummer.Target.Status`,
+`Drummer.GPIO.GPIO0`. See [Drummer](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/drummer.md).
+
+---
+
+### `client.JtagPorts` — JTAG ports and their XVC server
+
+A JTAG port is a JTAG TAP a module owns (MicroHAPS's FT4232H interface A, a JtagPorts FTDI cable), held by one of
+the owner, an XVC client (Vivado) or a Drummer instance at a time. Firmware with stable module names.
+
+| Method | Description |
+|---|---|
+| `GetAllAsync()` | Every port (`JtagPortDto`: `Name`, `StateChannel`, `XvcChannel`, `State`: free, held or down, the holder, the bound instance, the XVC server) |
+| `GetStateAsync(port)` | One port's state now |
+| `SetXvcAsync(port, on)` | Switches the port's XVC server (`<port>.Xvc`); **Admin** |
+
+```csharp
+foreach (var p in await client.JtagPorts.GetAllAsync())
+    Console.WriteLine($"{p.Name}: {p.State?.State} {p.State?.Holder?.Name} bound to {p.State?.Bound}");
+await client.Drummer.Target("Drummer").BindPortAsync("MicroHAPS.JTAG.A");
+```
+
+See [JTAG ports](https://github.com/esharpab/esharp-accordion-projects-webapiclient/blob/main/docs/api/jtag-ports.md).
 
 ---
 

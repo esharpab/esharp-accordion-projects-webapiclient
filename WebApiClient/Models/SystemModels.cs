@@ -106,9 +106,60 @@ public sealed class BootModuleDto
 public sealed class BootAddressDto
 {
     public string Interface { get; set; } = string.Empty;
-    /// <summary>An address, with or without its prefix length, e.g. <c>192.168.0.222/24</c>.</summary>
+    /// <summary>
+    /// An address, with or without its prefix length: IPv4 (<c>192.168.0.222/24</c>, kept as sent) or, from firmware 7.1.0
+    /// (capability <c>network.ipv6</c>), IPv6 (<c>2001:db8::10/64</c>; /64 when none is given, stored canonical). IPv6 in
+    /// ::/8, link-local, multicast and zone ids are refused with 400.
+    /// </summary>
     public string StaticIp { get; set; } = string.Empty;
     public bool Enabled { get; set; }
+}
+
+/// <summary>The station's network interfaces and their addresses (<c>GET api/system/network</c>, firmware 7.1.0).</summary>
+public sealed class NetworkDto
+{
+    /// <summary>Without <c>lo</c> and the docker, veth and bridge interfaces.</summary>
+    public List<NetworkInterfaceDto> Interfaces { get; set; } = [];
+}
+
+/// <summary>One network interface.</summary>
+public sealed class NetworkInterfaceDto
+{
+    /// <summary>e.g. <c>eth0</c>, <c>wlan0</c>.</summary>
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Ethernet and Wi-Fi only.</summary>
+    public string? Mac { get; set; }
+    /// <summary>The kernel's operational state: <c>UP</c>, <c>DOWN</c>, <c>UNKNOWN</c>…</summary>
+    public string State { get; set; } = string.Empty;
+    /// <summary>IPv4 first, then IPv6 global, unique-local and link-local.</summary>
+    public List<NetworkAddressDto> Addresses { get; set; } = [];
+}
+
+/// <summary>An address on an interface, as the kernel has it now.</summary>
+public sealed class NetworkAddressDto
+{
+    /// <summary>The address alone, e.g. <c>2001:db8::10</c> (a link-local one without its <c>%interface</c>).</summary>
+    public string Address { get; set; } = string.Empty;
+    public int Prefix { get; set; }
+    /// <summary><c>IPv4</c> or <c>IPv6</c>.</summary>
+    public string Family { get; set; } = string.Empty;
+    /// <summary><c>global</c>, <c>unique-local</c> (fc00::/7), <c>link-local</c> or <c>loopback</c>.</summary>
+    public string Kind { get; set; } = string.Empty;
+    /// <summary>
+    /// <c>static</c>, <c>dhcp</c> (an IPv4 lease), <c>automatic</c> (SLAAC, DHCPv6, link-local) or <c>temporary</c>
+    /// (an IPv6 privacy address).
+    /// </summary>
+    public string Origin { get; set; } = string.Empty;
+    /// <summary>The kernel no longer picks it for new connections.</summary>
+    public bool Deprecated { get; set; }
+    /// <summary>Duplicate address detection hasn't finished.</summary>
+    public bool Tentative { get; set; }
+    /// <summary>Another device on the link has this address; the station doesn't use it.</summary>
+    public bool DadFailed { get; set; }
+    /// <summary>Seconds it stays valid; null for ever.</summary>
+    public int? ValidSeconds { get; set; }
+    /// <summary>An enabled boot.config entry for this interface lists it.</summary>
+    public bool Configured { get; set; }
 }
 
 public sealed class BootWifiDto

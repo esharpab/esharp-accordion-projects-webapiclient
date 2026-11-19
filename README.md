@@ -457,6 +457,7 @@ reads get `AccordionQ2ApiException` with 423. The holder sends its lease id with
 | `GetBootAsync()` | The hardware app's start-up configuration (boot.config), without the Wi-Fi password |
 | `SetBootAsync(BootConfigUpdateDto)` | Edit boot.config: each section set replaces the file's; `IfModified` gives 409 instead of overwriting another edit |
 | `SetBootStartupAsync(enabled, aliasFiles)` | Change only whether boot.config is applied and which alias files load at start-up |
+| `GetNetworkAsync()` | Every address on the station's interfaces now, IPv4 and IPv6, with its kind, origin and whether boot.config lists it (firmware 7.1.0, capability `network.ipv6`) |
 
 boot.config changes apply at the hardware app's next start (alias files and modules also on reset).
 

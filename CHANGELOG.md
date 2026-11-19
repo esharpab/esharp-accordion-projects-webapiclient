@@ -23,11 +23,19 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 - The `AccordionQ2Certificates.Validate(certificate, presented, errors, sha256, trustedCa)` overload, which takes the
   chain the TLS stack built (the validation callback's `X509Chain`), for callers who configure their own handler.
   `CreateValidationCallback` now passes its chain to it.
+- `System.GetNetworkAsync()` (`GET api/system/network`, firmware 7.1.0, capability `network.ipv6`; FW7 NET-05): the
+  station's interfaces and every address on them, IPv4 and IPv6, as `NetworkDto` / `NetworkInterfaceDto` /
+  `NetworkAddressDto`: family, kind (global, unique-local, link-local), origin (static, dhcp, automatic, temporary), the
+  kernel's deprecated, tentative and duplicate-address flags, the valid lifetime and whether boot.config lists it.
+- `BootAddressDto.StaticIp` documents IPv6 static addresses, which boot.config takes from firmware 7.1.0
+  (`2001:db8::10/64`; /64 when none is given, stored canonical).
 
 ### Compatibility
 
 - Source and binary compatible with 7.4.0. The 4-argument `Validate` overload is unchanged (it has no chain, so it
   still accepts only a certificate the CA issued directly). Pin and OS-trusted paths are unchanged.
+- `GetNetworkAsync` and the network DTOs are additions. Against firmware before 7.1.0 the call throws
+  `AccordionQ2ApiException` with status 404; check the capability `network.ipv6` first.
 - Event-stream errors other than 401, 403 and a 404 without a message now carry the station's message instead of
   "The event stream couldn't be opened: HTTP n". A 3xx without a message now says the client doesn't follow
   redirects and to check the base URL.

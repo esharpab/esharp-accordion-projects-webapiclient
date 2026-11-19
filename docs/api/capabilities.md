@@ -56,4 +56,4 @@ else
 | `CapabilitiesDto.SecurityApiKey` | `"security.apikey"` | The station checks API keys as `SecurityMode` says ([Security](../security.md)) |
 | `CapabilitiesDto.ValuesCacheOnly` | `"values.cacheOnly"` | `Resources.ReadCachedValuesAsync` works ([cache-only reads](resources.md#cache-only-reads)); checked by the client itself |
 
-The server may list other features too, for example `"instruments"`; `Has` takes any string.
+The server may list other features too, for example `"instruments"`, or `"network.ipv6"` (firmware 7.1.0: boot.config takes static IPv6 addresses and [`System.GetNetworkAsync`](system.md#network-the-addresses-on-the-station-now) works); `Has` takes any string.

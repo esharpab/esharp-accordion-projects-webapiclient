@@ -38,6 +38,14 @@ public sealed class SystemGroup : ApiGroupBase
     public Task<ClockStatusDto> SetClockAsync(DateTimeOffset utc, bool force = false, CancellationToken ct = default)
         => PutAsync<ClockStatusDto>("api/system/clock", new { utc = utc.ToUniversalTime(), force }, ct);
 
+    /// <summary>
+    /// The station's network interfaces and every address on them, IPv4 and IPv6, with each address's kind and origin and
+    /// whether boot.config lists it. Firmware 7.1.0 and later (capability <c>network.ipv6</c>); older firmware answers 404,
+    /// thrown as <see cref="AccordionQ2ApiException"/>. 501 from a WebApi that doesn't run on a station.
+    /// </summary>
+    public Task<NetworkDto> GetNetworkAsync(CancellationToken ct = default)
+        => GetAsync<NetworkDto>("api/system/network", ct);
+
     /// <summary>The hardware app's start-up configuration (boot.config), without the Wi-Fi password.</summary>
     public Task<BootConfigDto> GetBootAsync(CancellationToken ct = default)
         => GetAsync<BootConfigDto>("api/system/boot", ct);

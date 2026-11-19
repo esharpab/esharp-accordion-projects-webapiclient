@@ -18,6 +18,7 @@ The station's services, reboot, clock, and the hardware app's start-up configura
 | `GetBootAsync(ct?)` | `Task<BootConfigDto>` | The start-up configuration, without the Wi-Fi password. |
 | `SetBootAsync(update, ct?)` | `Task<BootConfigDto>` | Edit the start-up configuration. |
 | `SetBootStartupAsync(enabled, aliasFiles, ct?)` | `Task<BootConfigDto>` | Change only whether boot.config is applied and which alias files are loaded. |
+| `GetNetworkAsync(ct?)` | `Task<NetworkDto>` | Every address on the station's interfaces now, IPv4 and IPv6 (firmware 7.1.0, capability `network.ipv6`). |
 
 ## Services
 
@@ -117,6 +118,8 @@ try
         IpConfigurations = new List<BootAddressDto>
         {
             new() { Interface = "eth0", StaticIp = "192.168.0.222/24", Enabled = true },
+            // From firmware 7.1.0 (capability "network.ipv6"); stored as 2001:db8::10/64
+            new() { Interface = "eth0", StaticIp = "2001:db8::10", Enabled = true },
         },
         // Password = null keeps the saved password; "" would clear it
         Wifi = new BootWifiUpdateDto { Enabled = true, Ssid = "Lab", Password = null },
@@ -132,9 +135,33 @@ catch (AccordionQ2ApiException ex) when (ex.StatusCode == 400)
 }
 ```
 
-Everything is checked before anything is written. 400 for, among others: an address that isn't IPv4 with an optional prefix length, an enabled address without one, Wi-Fi on without an SSID, a Wi-Fi password that isn't 8 to 63 characters, a module without a name or a duplicate one, an enabled module without assembly and class, a duplicate service, and turning off a protected service. Both calls answer with the file as `GetBootAsync` shows it.
+Everything is checked before anything is written. 400 for, among others: an address that isn't IPv4 or (from firmware 7.1.0) IPv6 with an optional prefix length, an IPv6 address in ::/8, link-local (fe80::/10), multicast (ff00::/8) or with a zone id (`%eth0`), an enabled address without one, Wi-Fi on without an SSID, a Wi-Fi password that isn't 8 to 63 characters, a module without a name or a duplicate one, an enabled module without assembly and class, a duplicate service, and turning off a protected service. Both calls answer with the file as `GetBootAsync` shows it.
 
 A module keeps what the API doesn't show (its image name and initial data) as long as its name stays the same. An empty `Namespace` is taken from `ClassName`.
+
+### Static IPv6 addresses
+
+From firmware 7.1.0 (capability `network.ipv6`) `StaticIp` also takes IPv6. An IPv6 address without a prefix length gets /64, and the file stores it in its canonical form with the prefix written out (`2001:DB8:0::10` becomes `2001:db8::10/64`); an IPv4 address is stored as sent. The station keeps the IPv6 addresses it makes itself (SLAAC, link-local) beside them. Firmware before 7.1.0 refuses IPv6 with 400, and its hardware app can't apply a boot.config with an IPv6 entry: remove them before going back to an older firmware.
+
+## Network: the addresses on the station now
+
+`GetNetworkAsync` lists the station's interfaces (not `lo`, docker, veth or bridge interfaces) and every address on them as the kernel has it now, whatever gave it: DHCP, boot.config, SLAAC, IPv6 privacy addresses, link-local. Viewer role in security mode On.
+
+```csharp
+var caps = await client.Capabilities.GetAsync();
+if (caps.Has("network.ipv6"))
+{
+    var network = await client.System.GetNetworkAsync();
+    foreach (var nic in network.Interfaces)
+        foreach (var a in nic.Addresses)
+            Console.WriteLine($"{nic.Name,-6} {a.Address}/{a.Prefix,-4} {a.Kind,-12} {a.Origin,-9}{(a.Configured ? " boot.config" : "")}{(a.DadFailed ? " DUPLICATE" : "")}");
+}
+```
+
+- Addresses come IPv4 first, then IPv6 global, unique-local and link-local.
+- A link-local IPv6 address is given without its zone; to connect to it, add the interface of the computer you connect from (`fe80::1%eth0` on Linux).
+- `DadFailed`: another device on the link has the address, and the station doesn't use it.
+- 404 from firmware before 7.1.0 (check the capability first); 501 from a WebApi that doesn't run on a station.
 
 ## Models
 
@@ -201,8 +228,38 @@ A module keeps what the API doesn't show (its image name and initial data) as lo
 | Property | Type | Description |
 |----------|------|-------------|
 | `Interface` | `string` | e.g. `eth0` |
-| `StaticIp` | `string` | An IPv4 address, with or without its prefix length, e.g. `192.168.0.222/24` |
+| `StaticIp` | `string` | An IPv4 address, with or without its prefix length, e.g. `192.168.0.222/24`; from firmware 7.1.0 also IPv6, e.g. `2001:db8::10/64` (/64 when none is given, stored canonical) |
 | `Enabled` | `bool` | Apply it |
+
+### `NetworkDto`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Interfaces` | `List<NetworkInterfaceDto>` | The station's interfaces |
+
+### `NetworkInterfaceDto`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Name` | `string` | e.g. `eth0`, `wlan0` |
+| `Mac` | `string?` | Ethernet and Wi-Fi only |
+| `State` | `string` | The kernel's operational state: `UP`, `DOWN`, `UNKNOWN` |
+| `Addresses` | `List<NetworkAddressDto>` | IPv4 first, then IPv6 global, unique-local and link-local |
+
+### `NetworkAddressDto`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Address` | `string` | The address alone, e.g. `2001:db8::10` |
+| `Prefix` | `int` | Its prefix length |
+| `Family` | `string` | `IPv4` or `IPv6` |
+| `Kind` | `string` | `global`, `unique-local` (fc00::/7), `link-local` (fe80::/10, 169.254/16) or `loopback` |
+| `Origin` | `string` | `static`, `dhcp` (an IPv4 lease), `automatic` (SLAAC, DHCPv6, link-local) or `temporary` (an IPv6 privacy address) |
+| `Deprecated` | `bool` | The kernel no longer picks it for new connections |
+| `Tentative` | `bool` | Duplicate address detection hasn't finished |
+| `DadFailed` | `bool` | Another device on the link has it; the station doesn't use it |
+| `ValidSeconds` | `int?` | How long it stays valid; null for ever |
+| `Configured` | `bool` | An enabled boot.config entry for this interface lists it |
 
 ### `BootWifiDto`
 

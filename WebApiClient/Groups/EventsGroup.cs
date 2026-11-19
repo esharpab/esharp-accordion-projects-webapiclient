@@ -22,7 +22,9 @@ public sealed class EventsGroup
     /// <remarks>
     /// Throws <see cref="TimeoutException"/> after <see cref="SilenceLimit"/> without data,
     /// <see cref="IOException"/> when the server ends the stream, and <see cref="AccordionQ2ApiException"/>
-    /// (404 for a WebApi without the stream; <see cref="AccordionQ2SecurityException"/> for 401/403) when it can't be opened. Reconnecting is the caller's: after
+    /// (404 for a WebApi without the stream; <see cref="AccordionQ2SecurityException"/> for 401/403; otherwise with the
+    /// station's own message when it gives one) when it can't be opened. A station in security mode On answers plain
+    /// HTTP with 308; the exception's message names the https URL. Reconnecting is the caller's: after
     /// opening again reload channels, as the contract asks, and also whenever <c>generation</c> changes or
     /// the ids have a gap. Missed events aren't replayed.
     /// </remarks>
@@ -34,9 +36,8 @@ public sealed class EventsGroup
         if (!response.IsSuccessStatusCode)
         {
             var status = (int)response.StatusCode;
-            var body = status is 401 or 403 ? await response.Content.ReadAsStringAsync().ConfigureAwait(false) : string.Empty;
-            var error = _transport.CreateError(status, body, $"The event stream couldn't be opened: HTTP {status}");
-            throw error is AccordionQ2SecurityException ? error : new AccordionQ2ApiException(status, $"The event stream couldn't be opened: HTTP {status}");
+            var body = await ApiTransport.ReadErrorBodyAsync(response, ct).ConfigureAwait(false);
+            throw _transport.CreateError(status, body, $"The event stream couldn't be opened: HTTP {status}");
         }
 
         using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

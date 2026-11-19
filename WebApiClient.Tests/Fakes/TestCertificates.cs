@@ -37,6 +37,27 @@ internal static class TestCertificates
         return Exportable(request.CreateSelfSigned(From.AddDays(-1), To.AddDays(1)));
     }
 
+    /// <summary>
+    /// An intermediate CA signed by <paramref name="issuer"/>: CA:TRUE with path length 0, SKI and AKI. Without
+    /// <paramref name="keyCertSign"/> its key usage doesn't allow signing certificates; with <paramref name="ekuOid"/>
+    /// it is limited to that extended key usage.
+    /// </summary>
+    public static X509Certificate2 CreateIntermediateCa(X509Certificate2 issuer, string name, bool keyCertSign = true, string? ekuOid = null)
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest(name, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            keyCertSign ? X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign : X509KeyUsageFlags.DigitalSignature, true));
+        request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+        request.CertificateExtensions.Add(X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, true, false));
+        if (ekuOid is not null)
+            request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(new OidCollection { new Oid(ekuOid) }, false));
+        var serial = RandomNumberGenerator.GetBytes(12);
+        using var signed = request.Create(issuer, From.AddHours(-12), To.AddHours(12), serial);
+        return Exportable(signed.CopyWithPrivateKey(key));
+    }
+
     /// <summary>A server certificate for <paramref name="dnsName"/>, 127.0.0.1 and ::1 signed by <paramref name="ca"/>.</summary>
     public static X509Certificate2 CreateLeaf(X509Certificate2 ca, string dnsName) =>
         CreateLeaf(ca, dnsName, loopback: true, clientAuthOnly: false);
@@ -50,7 +71,10 @@ internal static class TestCertificates
         using var key = RSA.Create(2048);
         var request = ServerRequest("CN=" + dnsName, key, dnsName, loopback, clientAuthOnly ? ClientAuth : ServerAuth);
         var serial = RandomNumberGenerator.GetBytes(12);
-        using var signed = request.Create(ca, From, To, serial);
+        // Through a signature generator, not Create(ca, ...): that refuses an issuer whose key usage lacks
+        // keyCertSign, and a test needs such a leaf to see the chain refuse it.
+        using var caKey = ca.GetRSAPrivateKey() ?? throw new ArgumentException("The CA needs its RSA private key", nameof(ca));
+        using var signed = request.Create(ca.SubjectName, X509SignatureGenerator.CreateForRSA(caKey, RSASignaturePadding.Pkcs1), From, To, serial);
         return Exportable(signed.CopyWithPrivateKey(key));
     }
 

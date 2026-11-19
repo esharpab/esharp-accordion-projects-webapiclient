@@ -53,7 +53,28 @@ public static class AccordionQ2Certificates
     /// <item>With neither: when the operating system accepts it (<paramref name="errors"/> is None).</item>
     /// </list>
     /// </summary>
-    public static bool Validate(X509Certificate? certificate, SslPolicyErrors errors, string? sha256, X509Certificate2? trustedCa = null)
+    /// <remarks>
+    /// This overload has no chain from the server, so in CA mode it accepts only a certificate issued
+    /// directly by <paramref name="trustedCa"/>. Use the overload that takes the callback's chain to accept one
+    /// issued by an intermediate the station sends.
+    /// </remarks>
+    public static bool Validate(X509Certificate? certificate, SslPolicyErrors errors, string? sha256, X509Certificate2? trustedCa = null) =>
+        Validate(certificate, null, errors, sha256, trustedCa);
+
+    /// <summary>
+    /// Whether to accept a server certificate, as the other overload, but in CA mode it also uses the
+    /// intermediates the station sends.
+    /// </summary>
+    /// <param name="certificate">The server's certificate.</param>
+    /// <param name="presented">
+    /// The chain the TLS stack built from what the server sent (the callback's <see cref="X509Chain"/>); may be null.
+    /// Its certificates, apart from the leaf, are used as untrusted intermediates. They're never trusted by
+    /// themselves: the chain must still end at <paramref name="trustedCa"/>.
+    /// </param>
+    /// <param name="errors">What the operating system found.</param>
+    /// <param name="sha256">A pinned SHA-256 fingerprint, or null.</param>
+    /// <param name="trustedCa">A CA to trust besides the operating system's, or null.</param>
+    public static bool Validate(X509Certificate? certificate, X509Chain? presented, SslPolicyErrors errors, string? sha256, X509Certificate2? trustedCa = null)
     {
         if (certificate is null)
             return false;
@@ -66,6 +87,16 @@ public static class AccordionQ2Certificates
 
         using var chain = new X509Chain();
         chain.ChainPolicy.ExtraStore.Add(trustedCa);
+        if (presented is not null)
+        {
+            // Untrusted helpers only: the root must still be trustedCa (below). Windows tends to report the
+            // peer's certificates in ChainElements, .NET on Linux in ChainPolicy.ExtraStore; read both.
+            // Not disposed: they belong to the caller's chain.
+            for (var i = 1; i < presented.ChainElements.Count; i++)
+                chain.ChainPolicy.ExtraStore.Add(presented.ChainElements[i].Certificate);
+            foreach (var extra in presented.ChainPolicy.ExtraStore)
+                chain.ChainPolicy.ExtraStore.Add(extra);
+        }
         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
         chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
         chain.ChainPolicy.ApplicationPolicy.Add(new Oid(ServerAuthenticationOid)); // as the OS path requires
@@ -80,13 +111,14 @@ public static class AccordionQ2Certificates
 
     /// <summary>
     /// A callback for <see cref="HttpClientHandler.ServerCertificateCustomValidationCallback"/> that applies
-    /// <see cref="Validate"/>. Throws <see cref="ArgumentException"/> for a malformed <paramref name="sha256"/>.
+    /// <see cref="Validate(X509Certificate, X509Chain, SslPolicyErrors, string, X509Certificate2)"/> with the chain the
+    /// TLS stack built, so a CA's intermediates the station sends are used. Throws <see cref="ArgumentException"/> for a malformed <paramref name="sha256"/>.
     /// </summary>
     /// <remarks>Needs .NET Framework 4.7.1 or later on .NET Framework.</remarks>
     public static Func<HttpRequestMessage, X509Certificate2, X509Chain, SslPolicyErrors, bool> CreateValidationCallback(
         string? sha256, X509Certificate2? trustedCa = null)
     {
         var pin = sha256 is null ? null : NormalizeSha256(sha256);
-        return (_, certificate, _, errors) => Validate(certificate, errors, pin, trustedCa);
+        return (_, certificate, chain, errors) => Validate(certificate, chain, errors, pin, trustedCa);
     }
 }

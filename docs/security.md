@@ -35,7 +35,7 @@ The client sends it as the `X-Api-Key` header on every request, the [event strea
 
 ### Redirects
 
-The client doesn't follow HTTP redirects. .NET removes only the `Authorization` header when it follows one, so `X-Api-Key` and `X-Lease-Id` would go to whatever host the `Location` header names. The station's API never redirects, so a 3xx answer throws an `AccordionQ2ApiException` with that status, usually because the base URL is wrong.
+The client doesn't follow HTTP redirects. .NET removes only the `Authorization` header when it follows one, so `X-Api-Key` and `X-Lease-Id` would go to whatever host the `Location` header names. The station's API redirects only in security mode On, over plain HTTP from another host: a 308 whose JSON body names the https URL, which the `AccordionQ2ApiException` message shows (the event stream too, from 7.5.0). Any other 3xx usually means a wrong base URL.
 
 The client's own handler, and one from `AccordionQ2Client.CreateHandler`, has `AllowAutoRedirect = false`. If you supply your own `HttpClient` or `Handler`, turn redirects off in it yourself:
 
@@ -87,7 +87,7 @@ using var client = new AccordionQ2Client("https://station-12.lab.example:5001", 
 });
 ```
 
-The certificate must chain to that CA, match the host name in the URL, and be meant for TLS servers: a certificate with an extended key usage that doesn't include server authentication (for example one for client authentication or code signing) is refused. Certificates the operating system trusts are accepted too. When `CertificateSha256` is set, `TrustedCaCertificate` is ignored. Installing the CA in the operating system's trust store works as well and needs no option.
+The certificate must chain to that CA, directly or through intermediates the station sends (a station with a site certificate sends its chain; from 7.5.0), match the host name in the URL, and be meant for TLS servers: a certificate with an extended key usage that doesn't include server authentication (for example one for client authentication or code signing) is refused. Certificates the operating system trusts are accepted too. When `CertificateSha256` is set, `TrustedCaCertificate` is ignored. Installing the CA in the operating system's trust store works as well and needs no option.
 
 ### With your own HttpClient or handler
 
@@ -104,7 +104,7 @@ var client = new AccordionQ2Client("https://station-12:5001",
     new AccordionQ2ClientOptions { ApiKey = apiKey, HttpClient = http });
 ```
 
-`AccordionQ2Certificates.CreateValidationCallback(pin)` and `AccordionQ2Certificates.Validate(...)` apply the same rule to a handler you configure yourself, e.g. a `SocketsHttpHandler`'s `SslOptions.RemoteCertificateValidationCallback`.
+`AccordionQ2Certificates.CreateValidationCallback(pin)` and `AccordionQ2Certificates.Validate(...)` apply the same rule to a handler you configure yourself, e.g. a `SocketsHttpHandler`'s `SslOptions.RemoteCertificateValidationCallback`. Pass the callback's chain to `Validate(certificate, chain, errors, pin, trustedCa)` (7.5.0) so that, with a CA, the intermediates the station sends are used; the overload without the chain accepts only a certificate the CA issued directly.
 
 On .NET Framework, certificate options need 4.7.1 or later. API keys work on 4.6.1.
 

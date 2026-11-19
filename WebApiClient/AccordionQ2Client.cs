@@ -183,7 +183,7 @@ public sealed class AccordionQ2Client : IDisposable
     {
         if (options is null) throw new ArgumentNullException(nameof(options));
         // .NET drops only Authorization on a redirect; X-Api-Key and X-Lease-Id would go to the new host.
-        // The station's API never redirects.
+        // The station's API redirects only plain HTTP in security mode On (308, its body names the https URL).
         var handler = new HttpClientHandler { AllowAutoRedirect = false };
         if (options.CertificateSha256 is not null || options.TrustedCaCertificate is not null)
         {

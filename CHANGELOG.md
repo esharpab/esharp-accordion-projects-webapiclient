@@ -5,6 +5,34 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
+## [7.5.0] – 2026-11-19
+
+### Fixed
+
+- CA mode (`TrustedCaCertificate`) accepts a station certificate issued by an intermediate CA the station sends in
+  the TLS handshake (FW7 CLI-04). Those intermediates are untrusted helpers: the chain must still end exactly at
+  `TrustedCaCertificate` and allow server authentication. 7.4.0 and earlier accepted only a certificate the CA issued
+  directly.
+- `Events.ListenAsync` shows the station's message for any status it refuses the stream with, e.g. a 308 whose
+  message names the https URL when a station in security mode On is reached over plain HTTP, or a 503 with the
+  reason HTTPS isn't available (CLI-05). It reads at most 64 KiB of the error body.
+
+### Added
+
+- The `AccordionQ2Certificates.Validate(certificate, presented, errors, sha256, trustedCa)` overload, which takes the
+  chain the TLS stack built (the validation callback's `X509Chain`), for callers who configure their own handler.
+  `CreateValidationCallback` now passes its chain to it.
+
+### Compatibility
+
+- Source and binary compatible with 7.4.0. The 4-argument `Validate` overload is unchanged (it has no chain, so it
+  still accepts only a certificate the CA issued directly). Pin and OS-trusted paths are unchanged.
+- Event-stream errors other than 401, 403 and a 404 without a message now carry the station's message instead of
+  "The event stream couldn't be opened: HTTP n". A 3xx without a message now says the client doesn't follow
+  redirects and to check the base URL.
+
+---
+
 ## [7.4.0] – 2026-11-08
 
 ### Added

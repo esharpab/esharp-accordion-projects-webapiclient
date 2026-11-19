@@ -142,6 +142,81 @@ public class SecurityErrorTests
         Assert.AreEqual("The event stream couldn't be opened: HTTP 404", ex.Message);
     }
 
+    // As the WebApi's TransportMiddleware writes them (WebApi.Tests TransportTests).
+    private const string Body308 =
+        "{\"error\":\"This station accepts only HTTPS (security mode On). Use https://station-12:5001/api/events (port 5001)\"," +
+        "\"requires\":\"Https\",\"httpsUrl\":\"https://station-12:5001/api/events\",\"httpsPort\":5001}";
+    private const string Body503 = "{\"error\":\"HTTPS isn't available on this station: no certificate\",\"requires\":\"Https\"}";
+
+    [TestMethod]
+    public async Task EventStream_PermanentRedirect_ShowsTheStationsHttpsUrl()
+    {
+        using var client = Create(Key, HttpStatusCode.PermanentRedirect, Body308);
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
+            client.Events.ListenAsync(_ => Task.CompletedTask));
+        Assert.AreEqual(308, ex.StatusCode);
+        Assert.Contains("https://station-12:5001/api/events", ex.Message);
+        Assert.DoesNotContain("Check the base URL", ex.Message);
+    }
+
+    [TestMethod]
+    public async Task EventStream_ServiceUnavailable_ShowsTheReason()
+    {
+        using var client = Create(Key, HttpStatusCode.ServiceUnavailable, Body503);
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
+            client.Events.ListenAsync(_ => Task.CompletedTask));
+        Assert.AreEqual(503, ex.StatusCode);
+        Assert.AreEqual("HTTPS isn't available on this station: no certificate", ex.Message);
+    }
+
+    [TestMethod]
+    public async Task EventStream_BareRedirect_SaysItIsNotFollowed()
+    {
+        using var client = Create(Key, HttpStatusCode.PermanentRedirect, "");
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
+            client.Events.ListenAsync(_ => Task.CompletedTask));
+        Assert.AreEqual(308, ex.StatusCode);
+        Assert.Contains("Check the base URL", ex.Message);
+    }
+
+    [TestMethod]
+    public async Task EventStream_ServerMessageWithTheKey_IsWithheld()
+    {
+        using var client = Create(Key, HttpStatusCode.PermanentRedirect,
+            "{\"error\":\"Use https://station-12:5001/api/events?key=" + Key + "\",\"requires\":\"Https\"}");
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
+            client.Events.ListenAsync(_ => Task.CompletedTask));
+        Assert.AreEqual(308, ex.StatusCode);
+        Assert.Contains("withheld", ex.Message);
+        AssertKeyless(ex);
+    }
+
+    [TestMethod]
+    public async Task EventStream_OversizedErrorBody_IsCapped()
+    {
+        var handler = new RecordingHandler
+        {
+            Respond = _ => new HttpResponseMessage(HttpStatusCode.BadGateway)
+            {
+                Content = new StringContent(new string('x', 1024 * 1024), System.Text.Encoding.UTF8, "text/html"),
+            },
+        };
+        using var client = new AccordionQ2Client("http://station:5000", new AccordionQ2ClientOptions { ApiKey = Key, Handler = handler });
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() =>
+            client.Events.ListenAsync(_ => Task.CompletedTask));
+        Assert.AreEqual(502, ex.StatusCode);
+        Assert.AreEqual("The event stream couldn't be opened: HTTP 502", ex.Message);
+    }
+
+    [TestMethod]
+    public async Task EventStream_ErrorBody_IsReadUpToTheCap()
+    {
+        var json = "{\"error\":\"" + new string('y', 70 * 1024) + "\"}";
+        using var response = RecordingHandler.Json(HttpStatusCode.InternalServerError, json);
+        var body = await Internal.ApiTransport.ReadErrorBodyAsync(response, CancellationToken.None);
+        Assert.AreEqual(Internal.ApiTransport.MaxErrorBody, body.Length);
+    }
+
     [TestMethod]
     public void Capabilities_ReadSecurityMode()
     {

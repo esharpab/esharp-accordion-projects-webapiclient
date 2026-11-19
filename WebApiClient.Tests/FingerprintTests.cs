@@ -84,6 +84,124 @@ public class FingerprintTests
             "the CA itself isn't a server certificate it signed");
     }
 
+    private const SslPolicyErrors ChainErrors = SslPolicyErrors.RemoteCertificateChainErrors;
+    private const string ClientAuth = "1.3.6.1.5.5.7.3.2";
+
+    /// <summary>A chain as .NET on Linux reports the server's extra certificates: in its ExtraStore.</summary>
+    private static X509Chain PresentedInExtraStore(params X509Certificate2[] sent)
+    {
+        var presented = new X509Chain();
+        presented.ChainPolicy.ExtraStore.AddRange(sent);
+        return presented;
+    }
+
+    [TestMethod]
+    public void TrustedCa_AcceptsALeafUnderAnIntermediate_FromThePresentedChainsExtraStore()
+    {
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Site issuing CA");
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+        using var presented = PresentedInExtraStore(intermediate);
+
+        Assert.IsTrue(AccordionQ2Certificates.Validate(leaf, presented, ChainErrors, null, root));
+    }
+
+    [TestMethod]
+    public void TrustedCa_AcceptsALeafUnderAnIntermediate_FromThePresentedChainsElements()
+    {
+        // As Windows tends to report it: a chain built over the leaf, so ChainElements holds the intermediate.
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Site issuing CA");
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+        using var built = new X509Chain();
+        built.ChainPolicy.ExtraStore.Add(intermediate);
+        built.ChainPolicy.ExtraStore.Add(root);
+        built.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        built.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+        built.Build(leaf);
+        Assert.IsGreaterThanOrEqualTo(2, built.ChainElements.Count, "the test's chain must hold the intermediate");
+        Assert.AreEqual(intermediate.Thumbprint, built.ChainElements[1].Certificate.Thumbprint);
+
+        Assert.IsTrue(AccordionQ2Certificates.Validate(leaf, built, ChainErrors, null, root));
+    }
+
+    [TestMethod]
+    public void TrustedCa_RefusesALeafUnderAnIntermediate_WithoutThePresentedChain()
+    {
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Site issuing CA");
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, ChainErrors, null, root));
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, null, ChainErrors, null, root));
+    }
+
+    [TestMethod]
+    public void TrustedCa_RefusesAnIntermediateFromAnotherRoot()
+    {
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var otherCa = TestCertificates.CreateCa("CN=Other root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(otherCa, "CN=Other issuing CA");
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+        using var presented = PresentedInExtraStore(intermediate);
+        using var presentedWithItsRoot = PresentedInExtraStore(intermediate, otherCa);
+
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, presented, ChainErrors, null, root));
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, presentedWithItsRoot, ChainErrors, null, root),
+            "a root the station sends is never trusted by itself");
+    }
+
+    [TestMethod]
+    public void TrustedCa_RefusesWhenTheIntermediateMayNotSign()
+    {
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Site issuing CA", keyCertSign: false);
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+        using var presented = PresentedInExtraStore(intermediate);
+
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, presented, ChainErrors, null, root));
+    }
+
+    [TestMethod]
+    public void TrustedCa_ThroughAnIntermediate_StillRefusesANameMismatchAndClientAuthOnly()
+    {
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Site issuing CA");
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+        using var clientOnly = TestCertificates.CreateLeaf(intermediate, "station-12", loopback: true, clientAuthOnly: true);
+        using var presented = PresentedInExtraStore(intermediate);
+
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, presented,
+            ChainErrors | SslPolicyErrors.RemoteCertificateNameMismatch, null, root), "a CA doesn't excuse a wrong name");
+        Assert.IsFalse(AccordionQ2Certificates.Validate(clientOnly, presented, ChainErrors, null, root));
+    }
+
+    [TestMethod]
+    public void TrustedCa_RefusesAnIntermediateLimitedToClientAuth()
+    {
+        // The chain engine intersects the EKUs down the chain: serverAuth on the leaf isn't enough.
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Site client CA", ekuOid: ClientAuth);
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+        using var presented = PresentedInExtraStore(intermediate);
+
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, presented, ChainErrors, null, root));
+    }
+
+    [TestMethod]
+    public void Pin_IgnoresThePresentedChain()
+    {
+        using var root = TestCertificates.CreateCa("CN=Site root");
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Site issuing CA");
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "station-12");
+        using var other = SelfSigned();
+        using var presented = PresentedInExtraStore(intermediate);
+
+        Assert.IsTrue(AccordionQ2Certificates.Validate(leaf, presented, ChainErrors, AccordionQ2Certificates.Sha256Of(leaf), root));
+        Assert.IsFalse(AccordionQ2Certificates.Validate(leaf, presented, ChainErrors, AccordionQ2Certificates.Sha256Of(other), root),
+            "with a pin the CA and the chain don't matter");
+    }
+
     [TestMethod]
     public void CreateValidationCallback_RefusesAMalformedPinUpFront() =>
         Assert.ThrowsExactly<ArgumentException>(() => AccordionQ2Certificates.CreateValidationCallback("not-a-pin"));

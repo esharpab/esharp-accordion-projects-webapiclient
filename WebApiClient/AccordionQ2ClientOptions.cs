@@ -34,7 +34,8 @@ public sealed class AccordionQ2ClientOptions
 
     /// <summary>
     /// A CA to trust for the station's HTTPS certificate besides the operating system's, e.g. the site's
-    /// own CA. The certificate must chain to it and match the host name. Ignored when
+    /// own CA. The certificate must chain to it, directly or through intermediates the station sends, and match
+    /// the host name. Ignored when
     /// <see cref="CertificateSha256"/> is set.
     /// </summary>
     public X509Certificate2? TrustedCaCertificate { get; set; }

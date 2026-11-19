@@ -1,3 +1,4 @@
+using System.Text;
 using Newtonsoft.Json;
 
 namespace AccordionQ2.WebApiClient.Internal;
@@ -43,6 +44,41 @@ internal sealed class ApiTransport
         if (_leaseId is { } lease)
             request.Headers.TryAddWithoutValidation(Groups.LeaseGroup.HeaderName, lease);
         return Http.SendAsync(request, completion, ct);
+    }
+
+    /// <summary>The most of an error body <see cref="ReadErrorBodyAsync"/> reads: 64 KiB.</summary>
+    internal const int MaxErrorBody = 64 * 1024;
+
+    /// <summary>
+    /// Up to <see cref="MaxErrorBody"/> bytes of an error response's body as UTF-8 text, for
+    /// <see cref="CreateError"/> on a call that streams (whose body isn't read already). A body that can't be
+    /// read gives an empty string, so the status still shows. A truncated JSON body doesn't parse, and
+    /// CreateError then uses its fallback.
+    /// </summary>
+    internal static async Task<string> ReadErrorBodyAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            var buffer = new byte[MaxErrorBody];
+            var length = 0;
+            while (length < buffer.Length)
+            {
+                var read = await stream.ReadAsync(buffer, length, buffer.Length - length, ct).ConfigureAwait(false);
+                if (read == 0)
+                    break;
+                length += read;
+            }
+            return Encoding.UTF8.GetString(buffer, 0, length);
+        }
+        catch (IOException)
+        {
+            return string.Empty;
+        }
+        catch (HttpRequestException)
+        {
+            return string.Empty;
+        }
     }
 
     /// <summary>

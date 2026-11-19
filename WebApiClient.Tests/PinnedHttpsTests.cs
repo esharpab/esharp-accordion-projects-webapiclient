@@ -32,12 +32,20 @@ public class PinnedHttpsTests
 
         public int Port { get; private set; }
 
-        public static async Task<LocalStation> StartAsync(X509Certificate2 certificate, bool ipv6)
+        public static Task<LocalStation> StartAsync(X509Certificate2 certificate, bool ipv6) =>
+            StartAsync(certificate, ipv6, chain: null);
+
+        /// <summary>A station that sends <paramref name="chain"/> (its intermediates) after its certificate.</summary>
+        public static async Task<LocalStation> StartAsync(X509Certificate2 certificate, bool ipv6, X509Certificate2Collection? chain)
         {
             var builder = WebApplication.CreateSlimBuilder();
             builder.Logging.ClearProviders();
             builder.WebHost.ConfigureKestrel(k =>
-                k.Listen(ipv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, 0, l => l.UseHttps(certificate)));
+                k.Listen(ipv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, 0, l => l.UseHttps(o =>
+                {
+                    o.ServerCertificate = certificate;
+                    o.ServerCertificateChain = chain;
+                })));
             var app = builder.Build();
             var station = new LocalStation(app);
             app.MapGet("/api/capabilities", (HttpRequest request) =>
@@ -195,6 +203,60 @@ public class PinnedHttpsTests
 
         Assert.IsTrue(AccordionQ2Certificates.Validate(server, chainErrors, null, ca));
         Assert.IsFalse(AccordionQ2Certificates.Validate(clientOnly, chainErrors, null, ca));
+    }
+
+    [TestMethod]
+    public async Task TrustedCa_Connects_ThroughAnIntermediateTheStationSends()
+    {
+        // A fresh root and intermediate per test, so no certificate cache of the OS can help.
+        using var root = TestCertificates.CreateCa("CN=Accordion test site root " + Guid.NewGuid().ToString("N"));
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Accordion test issuing CA " + Guid.NewGuid().ToString("N"));
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "localhost");
+        await using var station = await LocalStation.StartAsync(leaf, ipv6: false, new X509Certificate2Collection(intermediate));
+
+        using (var client = new AccordionQ2Client($"https://127.0.0.1:{station.Port}",
+                   new AccordionQ2ClientOptions { ApiKey = Key, TrustedCaCertificate = root }))
+            Assert.AreEqual(7, (await client.Capabilities.GetAsync()).ApiVersion);
+        Assert.AreEqual(Key, station.ReceivedKey);
+
+        using var otherCa = TestCertificates.CreateCa("CN=Some other CA " + Guid.NewGuid().ToString("N"));
+        using var refused = new AccordionQ2Client($"https://127.0.0.1:{station.Port}",
+            new AccordionQ2ClientOptions { TrustedCaCertificate = otherCa });
+        await Assert.ThrowsAsync<HttpRequestException>(() => refused.Capabilities.GetAsync());
+        Assert.AreEqual(1, station.Requests);
+    }
+
+    [TestMethod]
+    public async Task TrustedCa_IsRefused_WhenTheStationDoesNotSendTheIntermediate()
+    {
+        using var root = TestCertificates.CreateCa("CN=Accordion test site root " + Guid.NewGuid().ToString("N"));
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Accordion test issuing CA " + Guid.NewGuid().ToString("N"));
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "localhost");
+        await using var station = await LocalStation.StartAsync(leaf, ipv6: false, new X509Certificate2Collection());
+
+        using var client = new AccordionQ2Client($"https://127.0.0.1:{station.Port}",
+            new AccordionQ2ClientOptions { ApiKey = Key, TrustedCaCertificate = root });
+        await Assert.ThrowsAsync<HttpRequestException>(() => client.Capabilities.GetAsync());
+        Assert.AreEqual(0, station.Requests);
+        Assert.IsNull(station.ReceivedKey);
+    }
+
+    [TestMethod]
+    public async Task Pin_StillDecides_ForALeafUnderAnIntermediate()
+    {
+        using var root = TestCertificates.CreateCa("CN=Accordion test site root " + Guid.NewGuid().ToString("N"));
+        using var intermediate = TestCertificates.CreateIntermediateCa(root, "CN=Accordion test issuing CA " + Guid.NewGuid().ToString("N"));
+        using var leaf = TestCertificates.CreateLeaf(intermediate, "localhost");
+        await using var station = await LocalStation.StartAsync(leaf, ipv6: false, new X509Certificate2Collection(intermediate));
+
+        using (var pinned = new AccordionQ2Client($"https://127.0.0.1:{station.Port}",
+                   new AccordionQ2ClientOptions { CertificateSha256 = AccordionQ2Certificates.Sha256Of(leaf) }))
+            Assert.AreEqual(7, (await pinned.Capabilities.GetAsync()).ApiVersion);
+
+        using var wrongPin = new AccordionQ2Client($"https://127.0.0.1:{station.Port}",
+            new AccordionQ2ClientOptions { CertificateSha256 = _pin, TrustedCaCertificate = root });
+        await Assert.ThrowsAsync<HttpRequestException>(() => wrongPin.Capabilities.GetAsync());
+        Assert.AreEqual(1, station.Requests);
     }
 
     [TestMethod]

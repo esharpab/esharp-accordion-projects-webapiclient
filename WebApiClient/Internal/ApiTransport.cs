@@ -46,30 +46,52 @@ internal sealed class ApiTransport
         return Http.SendAsync(request, completion, ct);
     }
 
-    /// <summary>The most of an error body <see cref="ReadErrorBodyAsync"/> reads: 64 KiB.</summary>
+    /// <summary>The most of an error body <see cref="ReadErrorBodyAsync(HttpResponseMessage, CancellationToken)"/> reads: 64 KiB.</summary>
     internal const int MaxErrorBody = 64 * 1024;
+
+    /// <summary>
+    /// How long <see cref="ReadErrorBodyAsync(HttpResponseMessage, CancellationToken)"/> waits for an error body:
+    /// 5 s. A streaming call reads it after the headers, where <see cref="HttpClient.Timeout"/> no longer applies.
+    /// </summary>
+    internal static readonly TimeSpan ErrorBodyTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// Up to <see cref="MaxErrorBody"/> bytes of an error response's body as UTF-8 text, for
     /// <see cref="CreateError"/> on a call that streams (whose body isn't read already). A body that can't be
-    /// read gives an empty string, so the status still shows. A truncated JSON body doesn't parse, and
-    /// CreateError then uses its fallback.
+    /// read, or doesn't end within <see cref="ErrorBodyTimeout"/>, gives an empty string, so the status still shows.
+    /// A truncated JSON body doesn't parse, and CreateError then uses its fallback. Cancelling <paramref name="ct"/>
+    /// still throws.
     /// </summary>
-    internal static async Task<string> ReadErrorBodyAsync(HttpResponseMessage response, CancellationToken ct)
+    internal static Task<string> ReadErrorBodyAsync(HttpResponseMessage response, CancellationToken ct) =>
+        ReadErrorBodyAsync(response, ErrorBodyTimeout, ct);
+
+    internal static async Task<string> ReadErrorBodyAsync(HttpResponseMessage response, TimeSpan limit, CancellationToken ct)
     {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(limit);
         try
         {
             using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            // A stream that ignores the token (.NET Framework's) ends its read when it is closed.
+            using var close = timeout.Token.Register(() => stream.Dispose());
             var buffer = new byte[MaxErrorBody];
             var length = 0;
             while (length < buffer.Length)
             {
-                var read = await stream.ReadAsync(buffer, length, buffer.Length - length, ct).ConfigureAwait(false);
+                var read = await stream.ReadAsync(buffer, length, buffer.Length - length, timeout.Token).ConfigureAwait(false);
                 if (read == 0)
                     break;
                 length += read;
             }
             return Encoding.UTF8.GetString(buffer, 0, length);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested && timeout.IsCancellationRequested)
+        {
+            return string.Empty; // the body stalled: its status is enough
+        }
+        catch (ObjectDisposedException) when (ct.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(ct); // closed by the caller's cancel, as a read that honours it throws
         }
         catch (IOException)
         {

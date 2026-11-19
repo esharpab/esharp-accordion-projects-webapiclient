@@ -217,6 +217,57 @@ public class SecurityErrorTests
         Assert.AreEqual(Internal.ApiTransport.MaxErrorBody, body.Length);
     }
 
+    /// <summary>A body that sends nothing and never ends, as from a proxy that hangs after its headers.</summary>
+    private sealed class StalledStream : Stream
+    {
+        private readonly TaskCompletionSource<int> _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => _closed.Task.GetAwaiter().GetResult();
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken ct) => _closed.Task.WaitAsync(ct);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing) { _closed.TrySetException(new ObjectDisposedException(nameof(StalledStream))); base.Dispose(disposing); }
+    }
+
+    private static HttpResponseMessage Stalled(HttpStatusCode status) => new(status) { Content = new StreamContent(new StalledStream()) };
+
+    [TestMethod]
+    public async Task ErrorBody_ThatStalls_IsEmptyAfterTheLimit()
+    {
+        using var response = Stalled(HttpStatusCode.BadGateway);
+        var read = Internal.ApiTransport.ReadErrorBodyAsync(response, TimeSpan.FromMilliseconds(100), CancellationToken.None);
+        Assert.AreSame(read, await Task.WhenAny(read, Task.Delay(TimeSpan.FromSeconds(10))), "the read must end at its limit");
+        Assert.AreEqual(string.Empty, await read);
+    }
+
+    [TestMethod]
+    public async Task ErrorBody_ThatStalls_StillHonoursTheCallersCancel()
+    {
+        using var response = Stalled(HttpStatusCode.BadGateway);
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            Internal.ApiTransport.ReadErrorBodyAsync(response, TimeSpan.FromMinutes(5), cts.Token));
+    }
+
+    [TestMethod]
+    [TestCategory("Slow")] // waits out ErrorBodyTimeout, 5 s
+    public async Task EventStream_ErrorBodyThatStalls_StillThrowsTheStatus()
+    {
+        var handler = new RecordingHandler { Respond = _ => Stalled(HttpStatusCode.BadGateway) };
+        using var client = new AccordionQ2Client("http://station:5000", new AccordionQ2ClientOptions { ApiKey = Key, Handler = handler });
+        var listen = client.Events.ListenAsync(_ => Task.CompletedTask);
+        Assert.AreSame(listen, await Task.WhenAny(listen, Task.Delay(TimeSpan.FromSeconds(30))), "ListenAsync must not wait for a body that never ends");
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() => listen);
+        Assert.AreEqual(502, ex.StatusCode);
+        Assert.AreEqual("The event stream couldn't be opened: HTTP 502", ex.Message);
+    }
+
     [TestMethod]
     public void Capabilities_ReadSecurityMode()
     {

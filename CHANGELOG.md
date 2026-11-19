@@ -15,7 +15,8 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   directly.
 - `Events.ListenAsync` shows the station's message for any status it refuses the stream with, e.g. a 308 whose
   message names the https URL when a station in security mode On is reached over plain HTTP, or a 503 with the
-  reason HTTPS isn't available (CLI-05). It reads at most 64 KiB of the error body.
+  reason HTTPS isn't available (CLI-05). It reads at most 64 KiB of the error body and waits at most 5 s for it: a
+  body that stalls (e.g. from a proxy) gives `HTTP n`, as before.
 
 ### Added
 

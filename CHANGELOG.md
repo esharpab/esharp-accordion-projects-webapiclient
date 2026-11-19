@@ -31,7 +31,8 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   (`2001:db8::10/64`; /64 when none is given, stored canonical).
 - Firmware security updates (firmware 7.1.0; FW7 CRA-05, CRA-11): `FirmwareReleaseDto.Security` (a security release),
   `FirmwareReleasesDto.SecurityUpdate` (the release to install for security fixes), and on `FirmwareStateDto` the
-  `Runtime` (`RuntimeDto`, the .NET the WebApi runs; firmware 7.0.5 already sends it), `AutoUpdate` (`AutoUpdateDto`),
+  `Runtime` (`RuntimeDto`, the .NET the WebApi runs; firmware 7.0.5 already sends it), `AutoUpdate` (`AutoUpdateDto`, with
+  `ModeIsDefault` and `WindowIsDefault`),
   `OsUpdates` (`OsUpdatesDto`: the Debian security updates the firmware carries and the .NET runtimes it removed) and
   `Sbom`. New calls on `Firmware`: `SetAutoUpdateAsync(mode, window)`, `CheckAutoUpdateAsync()`,
   `InstallOsUpdatesAsync(force)` (`OsUpdateRecordDto`), `GetOsUpdatesLogAsync()` and `GetSbomAsync()` (the CycloneDX 1.6

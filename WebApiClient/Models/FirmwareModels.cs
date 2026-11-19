@@ -66,6 +66,8 @@ public sealed class AutoUpdateDto
     public bool ModeIsDefault { get; set; }
     /// <summary>HH:mm-HH:mm in station time, or null for any time.</summary>
     public string? Window { get; set; }
+    /// <summary>True when the window is the station's configured one (no admin setting): send null to keep it so.</summary>
+    public bool WindowIsDefault { get; set; }
     public DateTimeOffset? LastCheck { get; set; }
     public string? LastCheckError { get; set; }
     /// <summary>The security update, or else the newest newer release, at the last check.</summary>

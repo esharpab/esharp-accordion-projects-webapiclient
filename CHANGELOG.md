@@ -28,8 +28,7 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   `GetUsersAsync`, `CreateUserAsync`, `SetUserPasswordAsync`, `SetUserRoleAsync`, `RemoveUserAsync`. The mode and keys:
   `GetStateAsync`, `SetModeAsync`, `CreateKeyAsync`, `RevokeKeyAsync`. The certificate: `GetCertificateAsync`,
   `InstallCertificateAsync`, `RemoveCertificateAsync`, `RegenerateCertificateAsync`. `GetEventsAsync(tail, since, kinds)`
-  (the security events). The firewall and SSH: `GetHostAsync`, `SetHostAsync`, `GetSshKeysAsync`, `AddSshKeyAsync`,
-  `RemoveSshKeyAsync`. Extensions: `GetExtensionsAsync`, `AcceptExtensionAsync`, `WithdrawExtensionAsync`,
+  (the security events). The firewall: `GetHostAsync`, `SetHostAsync` (the XVC ports). Extensions: `GetExtensionsAsync`, `AcceptExtensionAsync`, `WithdrawExtensionAsync`,
   `SetExtensionUploadsAsync`, `SetModuleImageRoleAsync`. The factory reset: `GetFactoryResetPreviewAsync`,
   `StartFactoryResetAsync`, `GetLastFactoryResetAsync` (null without a record). The models are in `SecurityModels.cs`,
   with the enums `StationRole` and `SecurityMode` for the calls' arguments; answers keep the station's names as strings.
@@ -47,9 +46,6 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   (`DocsListDto`: the pages with their path, title, section and summary, `/docs/` on the station's Web UI and its
   llms.txt; empty with a note on a station without the pages or before 7.1.0) and `GetAsync(path, html: false)` (the
   page's Markdown, or its HTML page). No credential needed. `CapabilitiesDto.Docs` (`docs`). docs/api/docs.md.
-- `HostSettingsDto.ContainerPorts` and `ContainerFrom` (firmware 7.1.0): the TCP ports Docker publishes on the station
-  that stay reachable from other hosts in security mode On, and from where; every other connection forwarded to a
-  container from outside the station is dropped in On.
 - The station's certificate request (firmware 7.1.0, FW7 CERT-01), for a site CA without a private key leaving the
   station: `Security.RequestCertificateAsync(names)` (a key made on the station and its CSR, `CertificateRequestDto`),
   `GetCertificateRequestAsync()` (null when none is pending), `DeleteCertificateRequestAsync()`, and

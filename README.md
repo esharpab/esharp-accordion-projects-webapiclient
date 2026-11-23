@@ -503,7 +503,7 @@ Firmware 7.1.0 (`api/security`); Admin unless noted, none needs the lease. A cal
 | `GetStateAsync()` / `SetModeAsync(mode)` / `CreateKeyAsync(name, role)` / `RevokeKeyAsync(id)` | The mode and API keys |
 | `GetCertificateAsync()` / `InstallCertificateAsync` / `RemoveCertificateAsync()` / `RegenerateCertificateAsync` | The HTTPS certificate |
 | `GetEventsAsync(tail, since, kinds)` | The security event log, newest first |
-| `GetHostAsync()` / `SetHostAsync(settings)` / `GetSshKeysAsync()` / `AddSshKeyAsync(line)` / `RemoveSshKeyAsync(id)` | The firewall, SSH and its keys |
+| `GetHostAsync()` / `SetHostAsync(settings)` | The firewall (the XVC ports) |
 | `GetExtensionsAsync()` / `AcceptExtensionAsync(folder, digest)` / `WithdrawExtensionAsync(folder)` / `SetExtensionUploadsAsync(minutes)` / `SetModuleImageRoleAsync(role)` | Extensions and module images |
 | `GetFactoryResetPreviewAsync()` / `StartFactoryResetAsync(hostName)` / `GetLastFactoryResetAsync()` | The factory reset |
 

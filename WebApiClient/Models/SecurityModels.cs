@@ -226,25 +226,19 @@ public sealed class SecurityEventDto
     public Dictionary<string, string>? Data { get; set; }
 }
 
-// ---------- firewall and SSH (SecurityHostController) ----------
+// ---------- the firewall (SecurityHostController) ----------
 
 /// <summary>
-/// The firewall and SSH settings, applied in mode On: whether SSH is open and from where (CIDRs or addresses, empty or
-/// null for any), the XVC ports an admin opens (closed when empty) and from where, and the container ports (TCP ports
-/// Docker publishes on the station, as other hosts connect to them) that stay reachable from other hosts and from where:
-/// in On every other connection forwarded to a container from outside the station is dropped (firmware 7.1.0).
+/// The firewall settings, applied in mode On: the XVC ports an admin opens (closed when empty) and from where (CIDRs or
+/// addresses, empty or null for any). In On the firewall drops connections forwarded to containers from outside the station.
 /// </summary>
 public sealed class HostSettingsDto
 {
-    public bool SshAllowed { get; set; } = true;
-    public List<string>? SshFrom { get; set; }
     public List<int>? XvcPorts { get; set; }
     public List<string>? XvcFrom { get; set; }
-    public List<int>? ContainerPorts { get; set; }
-    public List<string>? ContainerFrom { get; set; }
 }
 
-/// <summary>The firewall's or SSH's state (NotApplied, Applied, Failed, Unsupported), the helper's problem, when it was last reconciled.</summary>
+/// <summary>The firewall's or the service access's state (NotApplied, Applied, Failed, Unsupported), the helper's problem, when it was last reconciled.</summary>
 public sealed class HostPartDto
 {
     public string State { get; set; } = string.Empty;
@@ -252,7 +246,10 @@ public sealed class HostPartDto
     public DateTimeOffset? At { get; set; }
 }
 
-/// <summary><c>GET api/security/host</c>: the settings, what is in effect, the TCP ports the firewall opens in On, the SSH port, how many SSH keys, warnings for On.</summary>
+/// <summary>
+/// <c>GET api/security/host</c>: the settings, what is in effect (the firewall, and <see cref="Ssh"/>: E-Sharp's service
+/// access taking keys only), the TCP ports the firewall opens in On, the service access's port, warnings for On.
+/// </summary>
 public sealed class HostSecurityDto
 {
     public HostSettingsDto Settings { get; set; } = new();
@@ -260,31 +257,6 @@ public sealed class HostSecurityDto
     public HostPartDto Ssh { get; set; } = new();
     public List<int> TcpPorts { get; set; } = [];
     public int SshPort { get; set; }
-    public int SshKeys { get; set; }
-    public List<string>? Warnings { get; set; }
-}
-
-/// <summary>One of the <c>accordion</c> user's SSH keys; <see cref="Type"/> <c>unreadable</c> for a line that can't be read.</summary>
-public sealed class SshKeyDto
-{
-    public string Id { get; set; } = string.Empty;
-    public string Fingerprint { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
-    public int Bits { get; set; }
-    public string Comment { get; set; } = string.Empty;
-    public bool HasOptions { get; set; }
-}
-
-public sealed class CreatedSshKeyDto
-{
-    public SshKeyDto Info { get; set; } = new();
-    public List<string>? Warnings { get; set; }
-}
-
-/// <summary>The keys left after a removal, and a warning when that was the last one in On.</summary>
-public sealed class SshKeysDto
-{
-    public List<SshKeyDto> Keys { get; set; } = [];
     public List<string>? Warnings { get; set; }
 }
 

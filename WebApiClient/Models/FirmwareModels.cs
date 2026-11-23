@@ -175,8 +175,8 @@ public sealed class FirmwareUpdateStatusDto
     public long? TotalBytes { get; set; }
     public DateTimeOffset? Time { get; set; }
     /// <summary>
-    /// What an admin should know after a succeeded update in On (firmware 7.1.0, FW7 HOST-02), e.g. that SSH accepts nobody
-    /// until a key is installed; null when there is nothing, and before 7.1.0.
+    /// What an admin should know after a succeeded update in On (firmware 7.1.0, FW7 HOST-02), e.g. that the firewall
+    /// couldn't be loaded; null when there is nothing, and before 7.1.0.
     /// </summary>
     public List<string>? Warnings { get; set; }
 }

@@ -1,6 +1,6 @@
 # Security (`client.Security`)
 
-The station's security endpoints, `api/security` (firmware 7.1.0; client 7.5.0): logins and users, the security mode, API keys, the HTTPS certificate, the security events, the firewall and SSH, extensions and the factory reset. A station before 7.1.0 answers 404.
+The station's security endpoints, `api/security` (firmware 7.1.0; client 7.5.0): logins and users, the security mode, API keys, the HTTPS certificate, the security events, the firewall, extensions and the factory reset. A station before 7.1.0 answers 404.
 
 Every call needs the **Admin** role unless the table says otherwise; in security mode `Off` every caller is Admin. None needs the [lease](lease.md). A call that carries a secret (login, claim, own password, a user's password, a new user, installing a certificate) needs HTTPS or the station itself. Over plain HTTP from another host the station refuses it in every mode (400, or a 308 in `On`), but only after the password, setup code or private key has crossed the network in clear text. So the client doesn't send it: with a base address that is `http://` and not `localhost` or a loopback address (`127.0.0.1`, `[::1]`), these calls throw `InvalidOperationException` naming the https address, and nothing is sent. For the station's side (what each mode does, the claim, recovery) see the firmware documentation's security pages.
 
@@ -85,15 +85,14 @@ foreach (var e in log.Events)                 // newest first
 
 `tail` is 1 to 5000 (200 by default); `kinds` are the station's event names. The answer says how long the log keeps events (`MaxAgeDays`, `MaxBytes`) and the oldest kept.
 
-## Firewall, SSH and SSH keys
+## Firewall
 
 | Call | Answer |
 |---|---|
-| `GetHostAsync()` | `HostSecurityDto`: the settings, whether the firewall and SSH settings are in effect, the TCP ports the firewall opens in `On`, the SSH port, the number of SSH keys |
-| `SetHostAsync(HostSettingsDto)` | stored in every mode, applied at once in `On`: `SshAllowed`, `SshFrom`, `XvcPorts`, `XvcFrom`, `ContainerPorts` (TCP ports Docker publishes that other hosts may reach in `On`; firmware 7.1.0), `ContainerFrom` (CIDRs or addresses; empty or null for any) |
-| `GetSshKeysAsync()` | `List<SshKeyDto>` of the `accordion` user |
-| `AddSshKeyAsync(line)` | one authorized_keys line without options: whoever holds the key gets a shell on the station |
-| `RemoveSshKeyAsync(id)` | `SshKeysDto`: the keys left, with a warning when that was the last one in `On` |
+| `GetHostAsync()` | `HostSecurityDto`: the settings, whether the firewall is in effect, the TCP ports the firewall opens in `On` |
+| `SetHostAsync(HostSettingsDto)` | stored in every mode, applied at once in `On`: `XvcPorts` (closed when empty), `XvcFrom` (CIDRs or addresses; empty or null for any) |
+
+In `On` the firewall drops connections that other hosts make to ports containers publish on the station.
 
 ## Extensions and module images
 

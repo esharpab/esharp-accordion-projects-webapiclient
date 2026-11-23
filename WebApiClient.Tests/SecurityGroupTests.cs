@@ -268,7 +268,6 @@ public class SecurityGroupTests
         await Is(() => s.GetMeAsync(), "GET", "/api/security/me");
         handler.Respond = _ => Ok("[]");
         await Is(() => s.GetUsersAsync(), "GET", "/api/security/users");
-        await Is(() => s.GetSshKeysAsync(), "GET", "/api/security/ssh-keys");
         handler.Respond = _ => Ok("{}");
         await Is(() => s.CreateUserAsync("bob", StationRole.Viewer, "pw-123456789012"), "POST", "/api/security/users");
         await Is(() => s.SetUserPasswordAsync("u 1", "pw-123456789012"), "PUT", "/api/security/users/u%201/password");
@@ -288,9 +287,7 @@ public class SecurityGroupTests
         await Is(() => s.InstallSignedCertificateAsync("LEAF"), "PUT", "/api/security/certificate");
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => s.InstallSignedCertificateAsync(" "));
         await Is(() => s.GetHostAsync(), "GET", "/api/security/host");
-        await Is(() => s.SetHostAsync(new HostSettingsDto { SshAllowed = false }), "PUT", "/api/security/host");
-        await Is(() => s.AddSshKeyAsync("ssh-ed25519 AAAA me"), "POST", "/api/security/ssh-keys");
-        await Is(() => s.RemoveSshKeyAsync("abc-_DEF"), "DELETE", "/api/security/ssh-keys/abc-_DEF");
+        await Is(() => s.SetHostAsync(new HostSettingsDto { XvcPorts = [2542] }), "PUT", "/api/security/host");
         await Is(() => s.GetExtensionsAsync(), "GET", "/api/security/extensions");
         await Is(() => s.AcceptExtensionAsync("", "sha256:00"), "POST", "/api/security/extensions/accept");
         await Is(() => s.WithdrawExtensionAsync("Vendor Psu"), "DELETE", "/api/security/extensions/accept?folder=Vendor%20Psu");

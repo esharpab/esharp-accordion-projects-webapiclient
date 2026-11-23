@@ -7,7 +7,7 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// <summary>
 /// The station's security endpoints (firmware 7.1.0, <c>api/security</c>; FW7 CLI-04 follow-up): logins and users
 /// (SEC-03, SEC-05), the mode, API keys and the TLS certificate (SEC-01, NET-01), the security events (CRA-10), the
-/// firewall, SSH and its keys (HOST-01, HOST-02), extensions (HOST-04, CRA-07) and the factory reset (CRA-02). Every
+/// firewall (HOST-01), extensions (HOST-04, CRA-07) and the factory reset (CRA-02). Every
 /// call needs Admin unless it says otherwise (in mode Off that is everyone). None needs the lease. A station before
 /// 7.1.0 answers 404.
 /// </summary>
@@ -300,30 +300,15 @@ public sealed class SecurityGroup : ApiGroupBase
         return GetAsync<SecurityEventsDto>("api/security/events?" + string.Join("&", query), ct);
     }
 
-    // ---------- firewall and SSH (SecurityHostController) ----------
+    // ---------- the firewall (SecurityHostController) ----------
 
-    /// <summary>The firewall and SSH settings, whether they are in effect, the ports the firewall opens in On, the SSH port, the number of SSH keys.</summary>
+    /// <summary>The firewall settings (the XVC ports), whether the firewall is in effect, and the ports it opens in On.</summary>
     public Task<HostSecurityDto> GetHostAsync(CancellationToken ct = default)
         => GetAsync<HostSecurityDto>("api/security/host", ct);
 
-    /// <summary>Sets the firewall and SSH settings: stored in every mode, applied at once in On. 400 for a setting the station refuses.</summary>
+    /// <summary>Sets the firewall settings (the XVC ports): stored in every mode, applied at once in On. 400 for a setting the station refuses.</summary>
     public Task<HostSecurityDto> SetHostAsync(HostSettingsDto settings, CancellationToken ct = default)
         => PutAsync<HostSecurityDto>("api/security/host", settings ?? throw new ArgumentNullException(nameof(settings)), ct);
-
-    /// <summary>The <c>accordion</c> user's SSH keys.</summary>
-    public Task<List<SshKeyDto>> GetSshKeysAsync(CancellationToken ct = default)
-        => GetAsync<List<SshKeyDto>>("api/security/ssh-keys", ct);
-
-    /// <summary>
-    /// Installs an SSH key for the <c>accordion</c> user: one authorized_keys line without options (Ed25519, ECDSA, the
-    /// FIDO kinds, or RSA of 3072 bits or more). Whoever holds it gets a shell on the station. 400 for a line the station refuses.
-    /// </summary>
-    public Task<CreatedSshKeyDto> AddSshKeyAsync(string authorizedKeysLine, CancellationToken ct = default)
-        => PostAsync<CreatedSshKeyDto>("api/security/ssh-keys", new { key = authorizedKeysLine }, ct);
-
-    /// <summary>Removes an SSH key by its id; the answer lists the keys left, with a warning when that was the last one in On. 404 for an unknown id.</summary>
-    public Task<SshKeysDto> RemoveSshKeyAsync(string id, CancellationToken ct = default)
-        => SendJsonAsync<SshKeysDto>(HttpMethod.Delete, $"api/security/ssh-keys/{Uri.EscapeDataString(id)}", null, Credentials.All, passwordCheck: false, ct);
 
     // ---------- extensions (ExtensionsController) ----------
 

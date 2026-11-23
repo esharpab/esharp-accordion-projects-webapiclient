@@ -52,7 +52,7 @@ client.Security        // Logins, users, keys, certificate, events, firewall, ex
 | [System](system.md) | `client.System` | Services, reboot, clock and start-up configuration (boot.config) | [→](system.md) |
 | [Files](files.md) | `client.Files` | Browse, download and upload files in the station's folders | [→](files.md) |
 | [Firmware](firmware.md) | `client.Firmware` | List releases, upload packages and update the station | [→](firmware.md) |
-| [Security](security.md) | `client.Security` | Logins, users, the mode, keys, the certificate, security events, firewall and SSH, extensions, factory reset (firmware 7.1.0) | [→](security.md) |
+| [Security](security.md) | `client.Security` | Logins, users, the mode, keys, the certificate, security events, the firewall, extensions, factory reset (firmware 7.1.0) | [→](security.md) |
 | [Documentation](docs.md) | `client.Docs` | The station's documentation pages as Markdown or HTML, for scripts and AI agents (firmware 7.1.0) | [→](docs.md) |
 
 ## Newer Calls and Older Firmware

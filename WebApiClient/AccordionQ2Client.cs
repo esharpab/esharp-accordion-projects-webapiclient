@@ -79,7 +79,7 @@ public sealed class AccordionQ2Client : IDisposable
 
     /// <summary>
     /// The station's security (firmware 7.1.0, <c>api/security</c>): logins, users, the mode, API keys, the certificate,
-    /// the security events, the firewall and SSH, extensions and the factory reset.
+    /// the security events, the firewall, extensions and the factory reset.
     /// </summary>
     public SecurityGroup Security { get; }
 

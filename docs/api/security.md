@@ -2,7 +2,7 @@
 
 The station's security endpoints, `api/security` (firmware 7.1.0; client 7.5.0): logins and users, the security mode, API keys, the HTTPS certificate, the security events, the firewall, extensions and the factory reset. A station before 7.1.0 answers 404.
 
-Every call needs the **Admin** role unless the table says otherwise; in security mode `Off` every caller is Admin. None needs the [lease](lease.md). A call that carries a secret (login, claim, own password, a user's password, a new user, installing a certificate) needs HTTPS or the station itself. Over plain HTTP from another host the station refuses it in every mode (400, or a 308 in `On`), but only after the password, setup code or private key has crossed the network in clear text. So the client doesn't send it: with a base address that is `http://` and not `localhost` or a loopback address (`127.0.0.1`, `[::1]`), these calls throw `InvalidOperationException` naming the https address, and nothing is sent. For the station's side (what each mode does, the claim, recovery) see the firmware documentation's security pages.
+Every call needs the **Admin** role unless the table says otherwise; in security mode `Off` every caller is Admin. None needs the [lease](lease.md). A call that carries a secret (login, claim, own password, a user's password, a new user, installing a certificate) needs HTTPS or the station itself. Over plain HTTP from another host the station refuses it in every mode (400, or a 308 in `On`), but only after the password or private key has crossed the network in clear text. So the client doesn't send it: with a base address that is `http://` and not `localhost` or a loopback address (`127.0.0.1`, `[::1]`), these calls throw `InvalidOperationException` naming the https address, and nothing is sent. For the station's side (what each mode does, the claim, recovery) see the firmware documentation's security pages.
 
 ## Logging in
 
@@ -26,7 +26,8 @@ await client.Security.LogoutAsync();         // this token and its renewals stop
 | `RenewAsync()` | Viewer | the token only | `LoginResponseDto`; sets `Token` |
 | `LogoutAsync()` | Viewer | the token only | clears `Token` (also when the station can't be reached) |
 | `GetMeAsync()` | anyone | as every call | `MeDto`: the mode, `Claimed`, who this client is (`Caller`: `Key` or `User`), `LoginAvailable` |
-| `ClaimAsync(setupCode, name, password)` | anyone | no key, no token | `LoginResponseDto` for the new admin; sets `Token` |
+| `ClaimAsync(name, password)` | anyone | no key, no token | `LoginResponseDto` for the new admin; sets `Token`. Mode `Off` and `Report` only; in `On` 409: an unclaimed station is claimed there with the recovery drive (`RecoveryResetAdminAsync`) |
+| `SignOutAllAsync()` | Admin | as every call | every login token on the station ends, this one too (clears `Token`); API keys stay |
 | `ChangeOwnPasswordAsync(current, new)` | Viewer | the token only | `LoginResponseDto`: the user's other logins end; sets `Token` |
 
 `Token` can also be set to a token from elsewhere, or to null. With an API key as well, the client sends both and the station uses the key; renew, logout and the own password send only the token, as they act on a login. The client never puts the key or the token in an exception message.
@@ -38,10 +39,10 @@ A wrong name or password throws `AccordionQ2SecurityException` with `Reason` `Wr
 | Call | Answer |
 |---|---|
 | `GetUsersAsync()` | `List<UserDto>` (never a password or its hash) |
-| `CreateUserAsync(name, role, password)` | `UserDto`; 409 for the first admin of an unclaimed station (claim it, or use an admin API key in mode `On`) |
+| `CreateUserAsync(name, role, password)` | `UserDto`; 409 for the first admin of an unclaimed station (claim it, the recovery drive in mode `On`, or an admin API key in `On`) |
 | `SetUserPasswordAsync(id, password)` | that user's logins end everywhere |
-| `SetUserRoleAsync(id, role)` | `UserDto`; 400 when it would leave mode `On` without an admin |
-| `RemoveUserAsync(id)` | their logins end at once; 400 when it would leave `On` without an admin |
+| `SetUserRoleAsync(id, role)` | `UserDto`; 409 for the last admin user while the station has no admin API key (every mode) |
+| `RemoveUserAsync(id)` | their logins end at once; 409 for the last admin user while the station has no admin API key (every mode) |
 
 `role` is `StationRole.Viewer`, `Operator` or `Admin`.
 

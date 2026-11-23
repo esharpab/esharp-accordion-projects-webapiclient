@@ -46,7 +46,7 @@ internal sealed class ApiTransport
 
     /// <summary>
     /// Whether a request would go over plain HTTP to another host (not <c>localhost</c> or a loopback address): there a
-    /// password, setup code or private key would cross the network in clear text before the station could refuse it, so
+    /// password or private key would cross the network in clear text before the station could refuse it, so
     /// the calls that carry one stop here instead (FW7 CLI-04 follow-up, as SEC-03 refuses them on the station).
     /// </summary>
     internal bool IsPlainHttpToAnotherHost => _baseAddress.Scheme == Uri.UriSchemeHttp && !_baseAddress.IsLoopback;

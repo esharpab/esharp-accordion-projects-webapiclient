@@ -108,17 +108,28 @@ public sealed class SecurityGroup : ApiGroupBase
         => GetAsync<MeDto>("api/security/me", ct);
 
     /// <summary>
-    /// Claims an unclaimed station (anyone; from its own network segment, over HTTPS or on the station): sets its first
-    /// admin's password with the setup code read over SSH (<c>cat ~/webapi/config/setup-code</c>) and logs in as that
-    /// admin. <paramref name="name"/> null makes <c>admin</c>. 400 for a wrong code, 403 from another network, 409 when
-    /// already claimed, 429 after too many wrong codes.
+    /// Claims an unclaimed station in security mode Off or Report (anyone, over HTTPS): makes its first admin user with
+    /// <paramref name="name"/> (null makes <c>admin</c>) and <paramref name="password"/>, and logs in as that admin. No
+    /// setup code (firmware 7.1.0). 400 for a password the station refuses, 409 when already claimed, and 409 in mode On,
+    /// where an unclaimed station is claimed with a recovery drive (<see cref="RecoveryResetAdminAsync"/> while the drive
+    /// is in the station).
     /// </summary>
-    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the code and password aren't sent.</exception>
-    public async Task<LoginResponseDto> ClaimAsync(string setupCode, string? name, string password, CancellationToken ct = default)
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the password isn't sent.</exception>
+    public async Task<LoginResponseDto> ClaimAsync(string? name, string password, CancellationToken ct = default)
     {
         NeedSecureChannel("A claim");
-        return Use(await SendJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/security/claim", new { setupCode, name, password }, Credentials.None,
+        return Use(await SendJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/security/claim", new { name, password }, Credentials.None,
             passwordCheck: false, ct).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Signs everyone out (Admin; firmware 7.1.0): every login token on the station ends at once, also after a restart,
+    /// this client's own too (it forgets <see cref="Token"/>). API keys keep working.
+    /// </summary>
+    public async Task SignOutAllAsync(CancellationToken ct = default)
+    {
+        await PostAsync("api/security/sessions/sign-out-all", ct: ct).ConfigureAwait(false);
+        Token = null;
     }
 
     /// <summary>
@@ -138,7 +149,7 @@ public sealed class SecurityGroup : ApiGroupBase
     }
 
     /// <summary>
-    /// Stops a call that carries a password, setup code or private key before it leaves this client over plain HTTP to
+    /// Stops a call that carries a password or private key before it leaves this client over plain HTTP to
     /// another host (FW7 CLI-04 follow-up): the station would refuse it (SEC-03: 400, or 308 in On), but only after the
     /// secret had crossed the network in clear text. As the Web UI's certificate button is disabled there (UI-01).
     /// </summary>
@@ -185,11 +196,11 @@ public sealed class SecurityGroup : ApiGroupBase
         await PutAsync($"api/security/users/{Uri.EscapeDataString(id)}/password", new { password }, ct).ConfigureAwait(false);
     }
 
-    /// <summary>Sets a user's role; 400 when it would leave mode On without an admin, 404 for an unknown id.</summary>
+    /// <summary>Sets a user's role; 409 for the last admin user while the station has no admin API key, 404 for an unknown id.</summary>
     public Task<UserDto> SetUserRoleAsync(string id, StationRole role, CancellationToken ct = default)
         => PutAsync<UserDto>($"api/security/users/{Uri.EscapeDataString(id)}/role", new { role }, ct);
 
-    /// <summary>Removes a user: their logins end at once. 400 when it would leave mode On without an admin, 404 for an unknown id.</summary>
+    /// <summary>Removes a user: their logins end at once. 409 for the last admin user while the station has no admin API key, 404 for an unknown id.</summary>
     public Task RemoveUserAsync(string id, CancellationToken ct = default)
         => DeleteAsync($"api/security/users/{Uri.EscapeDataString(id)}", ct);
 

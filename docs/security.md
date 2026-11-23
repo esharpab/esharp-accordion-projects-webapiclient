@@ -63,7 +63,7 @@ A person can log in with a user name and password instead of a key: `client.Secu
 
 ### Slowed down
 
-In mode `On` a station slows an address down after failed keys, tokens, passwords or setup codes (429 with `Retry-After`). The client throws [`AccordionQ2ThrottledException`](error-handling.md#slowed-down-429) with `RetryAfter`, or waits and resends by itself when `AccordionQ2ClientOptions.MaxThrottleWait` allows the wait.
+In mode `On` a station slows an address down after failed keys, tokens, passwords (429 with `Retry-After`). The client throws [`AccordionQ2ThrottledException`](error-handling.md#slowed-down-429) with `RetryAfter`, or waits and resends by itself when `AccordionQ2ClientOptions.MaxThrottleWait` allows the wait.
 
 ## HTTPS with a pinned certificate
 

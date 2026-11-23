@@ -188,23 +188,36 @@ public class SecurityGroupTests
     {
         var (client, handler) = Create(Key, _ => RecordingHandler.Json(HttpStatusCode.Created, Login));
         using var _ = client;
-        await client.Security.ClaimAsync("ABCD-EFGH", null, "pw-123456789012");
+        await client.Security.ClaimAsync("chief", "pw-123456789012");
         Assert.AreEqual("/api/security/claim", handler.Last.Uri!.AbsolutePath);
         Assert.IsNull(handler.Last.Header("X-Api-Key"));
-        Assert.AreEqual("ABCD-EFGH", (string?)Body(handler.Last)["setupCode"]);
+        Assert.AreEqual("chief", (string?)Body(handler.Last)["name"]);
+        Assert.IsNull(Body(handler.Last)["setupCode"], "no setup code since firmware 7.1.0");
         Assert.AreEqual(Token, client.Security.Token);
     }
 
     [TestMethod]
-    public async Task A_claim_from_another_network_is_the_stations_reason_not_a_role()
+    public async Task Sign_out_all_posts_and_forgets_the_own_token()
+    {
+        var (client, handler) = Create(Key, _ => new HttpResponseMessage(HttpStatusCode.NoContent));
+        using var _ = client;
+        client.Security.Token = Token;
+        await client.Security.SignOutAllAsync();
+        Assert.AreEqual(HttpMethod.Post, handler.Last.Method);
+        Assert.AreEqual("/api/security/sessions/sign-out-all", handler.Last.Uri!.AbsolutePath);
+        Assert.IsNull(client.Security.Token, "the station ended this login too");
+    }
+
+    [TestMethod]
+    public async Task A_claim_in_On_is_the_stations_reason_not_a_role()
     {
         // AccountsController fills requires with the endpoint's role, Anonymous for the claim: no role is missing
-        var (client, _) = Create(null, _ => RecordingHandler.Json(HttpStatusCode.Forbidden,
-            "{\"error\":\"A station is claimed from its own network segment only\",\"requires\":\"Anonymous\"}"));
+        var (client, _) = Create(null, _ => RecordingHandler.Json(HttpStatusCode.Conflict,
+            "{\"error\":\"This station has no admin user yet, and in security mode On, claim it with a recovery drive\",\"requires\":\"Anonymous\"}"));
         using var _ = client;
-        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() => client.Security.ClaimAsync("ABCD-EFGH", null, "pw-123456789012"));
-        Assert.AreEqual(403, ex.StatusCode);
-        Assert.AreEqual("A station is claimed from its own network segment only", ex.Message);
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() => client.Security.ClaimAsync(null, "pw-123456789012"));
+        Assert.AreEqual(409, ex.StatusCode);
+        Assert.AreEqual("This station has no admin user yet, and in security mode On, claim it with a recovery drive", ex.Message);
     }
 
     [TestMethod]
@@ -217,7 +230,7 @@ public class SecurityGroupTests
         Func<Task>[] calls =
         [
             () => s.LoginAsync("ann", "pw-123456789012"),
-            () => s.ClaimAsync("ABCD-EFGH", null, "pw-123456789012"),
+            () => s.ClaimAsync(null, "pw-123456789012"),
             () => s.ChangeOwnPasswordAsync("old-password-1", "new-password-1"),
             () => s.CreateUserAsync("bob", StationRole.Viewer, "pw-123456789012"),
             () => s.SetUserPasswordAsync("u1", "pw-123456789012"),

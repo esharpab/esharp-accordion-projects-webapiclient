@@ -42,6 +42,12 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   station and holds no secret) and `RecoveryResetAdminAsync(user, password)` (`RecoveryResetDto`; while a recovery drive
   for the station is in it, anyone at the station can set an admin password; sent without the client's key or token,
   never over plain HTTP to another host; 409 without a drive). All three need no credential.
+- `Security.ClaimAsync(name, password)` takes no setup code (firmware 7.1.0): in security mode Off
+  and Report it makes the first admin of an unclaimed station from any address, over HTTPS; in On the station answers
+  409, and an unclaimed station is claimed with the recovery drive (`RecoveryResetAdminAsync`). `SetUserRoleAsync` and
+  `RemoveUserAsync` answer 409 for the last admin user while the station has no admin API key, in every mode.
+- `Security.SignOutAllAsync()` (Admin; `POST api/security/sessions/sign-out-all`): every login token on the station
+  ends, this client's own too (it forgets `Token`); API keys keep working.
 - `client.Docs`: the station's documentation for scripts and AI agents (firmware 7.1.0, `api/docs`): `ListAsync()`
   (`DocsListDto`: the pages with their path, title, section and summary, `/docs/` on the station's Web UI and its
   llms.txt; empty with a note on a station without the pages or before 7.1.0) and `GetAsync(path, html: false)` (the

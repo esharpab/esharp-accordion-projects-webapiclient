@@ -36,7 +36,7 @@ catch (AccordionQ2ApiException ex)
 | 404 | Not Found | Channel, resource, or config file does not exist; or a newer endpoint on older firmware |
 | 409 | Conflict | Someone else holds the [lease](api/lease.md); a codec version mismatch; a file that exists; boot.config changed since it was read; an update already running |
 | 423 | Locked | Another client holds the [lease](api/lease.md): changes and forced reads are refused |
-| 429 | Too Many Requests | Security mode `On` slows this client's address down: too many failed keys, tokens, passwords or setup codes, or too many requests without a key: `AccordionQ2ThrottledException`. Also a stream's subscription limit (`Subscriptions.CreateAsync`), a plain `AccordionQ2ApiException` |
+| 429 | Too Many Requests | Security mode `On` slows this client's address down: too many failed keys, tokens, passwords, or too many requests without a key: `AccordionQ2ThrottledException`. Also a stream's subscription limit (`Subscriptions.CreateAsync`), a plain `AccordionQ2ApiException` |
 | 500 | Internal Server Error | Hardware manager encountered an error |
 | 501 | Not Implemented | System and firmware calls on a WebApi that isn't running on a station |
 | 503 | Service Unavailable | The WebApi isn't connected to the hardware app |
@@ -73,7 +73,7 @@ A 403 that doesn't name a role, such as a change in a read-only folder, stays a 
 
 ## Slowed down (429)
 
-A station in security mode `On` (firmware 7.1.0) slows an address down after failed keys, login tokens, passwords or setup codes, and limits requests without a key to its anonymous endpoints. It answers 429 with `Retry-After` **before** it acts, so nothing was changed. The client throws `AccordionQ2ThrottledException`, a subclass of `AccordionQ2ApiException`; its message says it is a slow-down and when to try again, with the station's text as `(station: ...)`.
+A station in security mode `On` (firmware 7.1.0) slows an address down after failed keys, login tokens, passwords, and limits requests without a key to its anonymous endpoints. It answers 429 with `Retry-After` **before** it acts, so nothing was changed. The client throws `AccordionQ2ThrottledException`, a subclass of `AccordionQ2ApiException`; its message says it is a slow-down and when to try again, with the station's text as `(station: ...)`.
 
 | Property | Type | Description |
 |----------|------|-------------|

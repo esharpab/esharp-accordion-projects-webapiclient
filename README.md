@@ -498,7 +498,7 @@ Firmware 7.1.0 (`api/security`); Admin unless noted, none needs the lease. A cal
 | Method | Description |
 |---|---|
 | `LoginAsync(name, password)` / `RenewAsync()` / `LogoutAsync()` | A login: the client sends its token as `Authorization: Bearer` (`Token`, `TokenExpiresAt`) |
-| `GetMeAsync()` / `ClaimAsync(setupCode, name, password)` / `ChangeOwnPasswordAsync(current, new)` | Who this client is; claim an unclaimed station; the own password |
+| `GetMeAsync()` / `ClaimAsync(name, password)` / `ChangeOwnPasswordAsync(current, new)` | Who this client is; claim an unclaimed station; the own password |
 | `GetUsersAsync()` / `CreateUserAsync` / `SetUserPasswordAsync` / `SetUserRoleAsync` / `RemoveUserAsync` | The users |
 | `GetStateAsync()` / `SetModeAsync(mode)` / `CreateKeyAsync(name, role)` / `RevokeKeyAsync(id)` | The mode and API keys |
 | `GetCertificateAsync()` / `InstallCertificateAsync` / `RemoveCertificateAsync()` / `RegenerateCertificateAsync` | The HTTPS certificate |

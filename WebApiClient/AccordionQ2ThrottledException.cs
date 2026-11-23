@@ -2,7 +2,7 @@ namespace AccordionQ2.WebApiClient;
 
 /// <summary>
 /// Thrown when a station slows this client down (429, firmware 7.1.0 in security mode <c>On</c>; FW7 SEC-06, CRA-08):
-/// too many failed keys, tokens, passwords or setup codes from this address, or too many requests without a key to the
+/// too many failed keys, tokens, passwords from this address, or too many requests without a key to the
 /// anonymous endpoints. The station answers 429 before it acts, so nothing was changed; try again after
 /// <see cref="RetryAfter"/>. With <see cref="AccordionQ2ClientOptions.MaxThrottleWait"/> set, the client waits and
 /// resends by itself first, and throws this only when the wait would be longer or a few resends were refused too.

@@ -77,6 +77,12 @@ public sealed class AccordionQ2Client : IDisposable
     /// <summary>The station's JTAG ports: their state and their XVC switch (firmware with stable module names).</summary>
     public JtagPortsGroup JtagPorts { get; }
 
+    /// <summary>
+    /// The station's security (firmware 7.1.0, <c>api/security</c>): logins, users, the mode, API keys, the certificate,
+    /// the security events, the firewall and SSH, extensions and the factory reset.
+    /// </summary>
+    public SecurityGroup Security { get; }
+
     /// <summary>The header that carries the station API key.</summary>
     public const string ApiKeyHeader = "X-Api-Key";
 
@@ -141,7 +147,7 @@ public sealed class AccordionQ2Client : IDisposable
 
         // Validates the key before anything uses it, so a bad one fails here and not on the first request.
         ApiTransport transport;
-        try { transport = new ApiTransport(http, baseAddress, options.ApiKey); }
+        try { transport = new ApiTransport(http, baseAddress, options.ApiKey, options.MaxThrottleWait); }
         catch { if (_ownsClient) http.Dispose(); throw; }
 
         // The base address stays in the transport, which makes each request URI absolute, so a caller's
@@ -168,6 +174,7 @@ public sealed class AccordionQ2Client : IDisposable
         Instruments    = new InstrumentsGroup(transport);
         Drummer        = new DrummerGroup(transport);
         JtagPorts      = new JtagPortsGroup(transport);
+        Security       = new SecurityGroup(transport);
     }
 
     /// <summary>

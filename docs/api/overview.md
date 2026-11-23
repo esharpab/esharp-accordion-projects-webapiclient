@@ -27,6 +27,7 @@ client.Lease           // The control lease
 client.System          // Services, reboot, clock, boot.config
 client.Files           // Files in the station's folders
 client.Firmware        // Firmware releases and updates
+client.Security        // Logins, users, keys, certificate, events, firewall, extensions, factory reset
 ```
 
 | Group | Property | Description | Details |
@@ -51,6 +52,7 @@ client.Firmware        // Firmware releases and updates
 | [System](system.md) | `client.System` | Services, reboot, clock and start-up configuration (boot.config) | [→](system.md) |
 | [Files](files.md) | `client.Files` | Browse, download and upload files in the station's folders | [→](files.md) |
 | [Firmware](firmware.md) | `client.Firmware` | List releases, upload packages and update the station | [→](firmware.md) |
+| [Security](security.md) | `client.Security` | Logins, users, the mode, keys, the certificate, security events, firewall and SSH, extensions, factory reset (firmware 7.1.0) | [→](security.md) |
 
 ## Newer Calls and Older Firmware
 

@@ -1,6 +1,6 @@
 # Error Handling
 
-All API errors throw `AccordionQ2ApiException`, importable from the top-level namespace. The exception carries the HTTP status code and the server's error message. A refusal for want of an API key or role is its subclass `AccordionQ2SecurityException` ([below](#security-errors-401-and-403)).
+All API errors throw `AccordionQ2ApiException`, importable from the top-level namespace. The exception carries the HTTP status code and the server's error message. A refusal for want of an API key, login or role is its subclass `AccordionQ2SecurityException` ([below](#security-errors-401-and-403)), and a slow-down (429) is `AccordionQ2ThrottledException` ([below](#slowed-down-429)).
 
 ```csharp
 using AccordionQ2.WebApiClient;
@@ -31,11 +31,12 @@ catch (AccordionQ2ApiException ex)
 | HTTP Status | Meaning | Typical Cause |
 |-------------|---------|---------------|
 | 400 | Bad Request | Invalid parameters, or `GetSamplesAsync()` called after `ReducedSet = true` |
-| 401 | Unauthorized | The station is in security mode `On` and the client sent no API key, or one it doesn't know: `AccordionQ2SecurityException` |
+| 401 | Unauthorized | The station is in security mode `On` and the client sent no API key or login token, or one it doesn't accept; or a login's wrong password: `AccordionQ2SecurityException` |
 | 403 | Forbidden | The API key's role is too low (`AccordionQ2SecurityException`); or a change in a read-only folder ([Files](api/files.md)), a plain `AccordionQ2ApiException` |
 | 404 | Not Found | Channel, resource, or config file does not exist; or a newer endpoint on older firmware |
 | 409 | Conflict | Someone else holds the [lease](api/lease.md); a codec version mismatch; a file that exists; boot.config changed since it was read; an update already running |
 | 423 | Locked | Another client holds the [lease](api/lease.md): changes and forced reads are refused |
+| 429 | Too Many Requests | Security mode `On` slows this client's address down: too many failed keys, tokens, passwords or setup codes, or too many requests without a key: `AccordionQ2ThrottledException` |
 | 500 | Internal Server Error | Hardware manager encountered an error |
 | 501 | Not Implemented | System and firmware calls on a WebApi that isn't running on a station |
 | 503 | Service Unavailable | The WebApi isn't connected to the hardware app |
@@ -49,7 +50,7 @@ A station in security mode `On` refuses a request without a valid API key (401) 
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `Reason` | `AccordionQ2SecurityReason` | `MissingApiKey` (401, the client has no key), `InvalidApiKey` (401, the station doesn't know the key: wrong, or removed) or `RoleTooLow` (403) |
+| `Reason` | `AccordionQ2SecurityReason` | `MissingApiKey` (401, the client has no key), `InvalidApiKey` (401, the station doesn't know the key: wrong, or removed), `InvalidToken` (401, the login token expired or its login ended: log in again), `WrongPassword` (401 from `Security.LoginAsync` or `ChangeOwnPasswordAsync`: the name or password is wrong) or `RoleTooLow` (403) |
 | `RequiredRole` | `string?` | The role the request needs: `Viewer`, `Operator` or `Admin`, as the station said |
 | `StatusCode` | `int` | 401 or 403 |
 
@@ -69,6 +70,38 @@ catch (AccordionQ2SecurityException ex)
 ```
 
 A 403 that doesn't name a role, such as a change in a read-only folder, stays a plain `AccordionQ2ApiException`.
+
+## Slowed down (429)
+
+A station in security mode `On` (firmware 7.1.0) slows an address down after failed keys, login tokens, passwords or setup codes, and limits requests without a key to its anonymous endpoints. It answers 429 with `Retry-After` **before** it acts, so nothing was changed. The client throws `AccordionQ2ThrottledException`, a subclass of `AccordionQ2ApiException`; its message says it is a slow-down and when to try again, with the station's text as `(station: ...)`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `RetryAfter` | `TimeSpan?` | From `Retry-After` (seconds or an HTTP date); null without one |
+| `StationMessage` | `string?` | The station's `error`, e.g. `Too many failed keys from 192.168.0.58; try again in 2 s` |
+| `RequiredRole` | `string?` | The station's `requires` |
+| `StatusCode` | `int` | 429 |
+
+To let the client wait by itself, set `AccordionQ2ClientOptions.MaxThrottleWait`: a 429 whose `Retry-After` is at most that long is waited out and the request sent again, at most 3 times; a longer wait, or a fourth 429, throws. A stream upload (`Channels.UploadByteStreamAsync`) is never resent, as its stream may be read already. The default, zero, never waits.
+
+```csharp
+using var client = new AccordionQ2Client("https://station-12:5001", new AccordionQ2ClientOptions
+{
+    ApiKey          = key,
+    MaxThrottleWait = TimeSpan.FromSeconds(10),
+});
+
+try
+{
+    await client.Resources.GetValueAsync("Voltage.VDD");
+}
+catch (AccordionQ2ThrottledException ex)
+{
+    Console.WriteLine($"Slowed down; try again in {ex.RetryAfter?.TotalSeconds ?? 60} s");
+}
+```
+
+A blocked address stays blocked while it keeps failing: waiting helps a burst of requests, not a wrong key. The [event stream](api/events.md) doesn't reconnect by itself; a reconnect loop should wait `RetryAfter` before it opens again.
 
 ## Pattern: Retry on Transient Errors
 

@@ -20,6 +20,28 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ### Added
 
+- `client.Security`: the station's security endpoints (firmware 7.1.0, `api/security`; FW7 CLI-04 follow-up), with the
+  routes, verbs, bodies and answers of the WebApi's controllers. Logins: `LoginAsync`, `RenewAsync`, `LogoutAsync`,
+  `GetMeAsync`, `ClaimAsync`, `ChangeOwnPasswordAsync`; the client then sends the login token as `Authorization: Bearer`
+  (`Security.Token`, and `Security.TokenExpiresAt` on this computer's clock; it doesn't renew by itself). A login and a
+  claim go without the client's key or token; renew, logout and the own password with the token only. Users:
+  `GetUsersAsync`, `CreateUserAsync`, `SetUserPasswordAsync`, `SetUserRoleAsync`, `RemoveUserAsync`. The mode and keys:
+  `GetStateAsync`, `SetModeAsync`, `CreateKeyAsync`, `RevokeKeyAsync`. The certificate: `GetCertificateAsync`,
+  `InstallCertificateAsync`, `RemoveCertificateAsync`, `RegenerateCertificateAsync`. `GetEventsAsync(tail, since, kinds)`
+  (the security events). The firewall and SSH: `GetHostAsync`, `SetHostAsync`, `GetSshKeysAsync`, `AddSshKeyAsync`,
+  `RemoveSshKeyAsync`. Extensions: `GetExtensionsAsync`, `AcceptExtensionAsync`, `WithdrawExtensionAsync`,
+  `SetExtensionUploadsAsync`, `SetModuleImageRoleAsync`. The factory reset: `GetFactoryResetPreviewAsync`,
+  `StartFactoryResetAsync`, `GetLastFactoryResetAsync` (null without a record). The models are in `SecurityModels.cs`,
+  with the enums `StationRole` and `SecurityMode` for the calls' arguments; answers keep the station's names as strings.
+- `AccordionQ2ThrottledException` (a subclass of `AccordionQ2ApiException`) for 429, the slow-down of security mode On
+  (FW7 SEC-06, CRA-08): `RetryAfter` (from `Retry-After`, seconds or an HTTP date), `StationMessage`, `RequiredRole`, and
+  a message that says it is a slow-down and when to try again. 7.4.0 and earlier threw a plain `AccordionQ2ApiException`.
+- `AccordionQ2ClientOptions.MaxThrottleWait` (zero by default: off): a 429 whose Retry-After is at most this long is
+  waited out and the request sent again, at most 3 times; a stream upload (`Channels.UploadByteStreamAsync`) is never
+  resent. The event stream's opening waits the same way; the stream still doesn't reconnect by itself.
+- `AccordionQ2SecurityReason.InvalidToken` (401 for a login token the station no longer accepts) and `WrongPassword`
+  (401 from a login or an own password change). A 403 for a login says "login" instead of "API key". The client never
+  puts the login token in an exception message, as for the key.
 - The `AccordionQ2Certificates.Validate(certificate, presented, errors, sha256, trustedCa)` overload, which takes the
   chain the TLS stack built (the validation callback's `X509Chain`), for callers who configure their own handler.
   `CreateValidationCallback` now passes its chain to it.
@@ -46,6 +68,12 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   `AccordionQ2ApiException` with status 404; check the capability `network.ipv6` first.
 - The firmware DTO members are additions with defaults (false, null): against firmware before 7.1.0 they stay so. The new
   firmware calls throw `AccordionQ2ApiException` with status 404 there.
+- `client.Security` is an addition; against firmware before 7.1.0 its calls throw `AccordionQ2ApiException` with status
+  404 (`GetLastFactoryResetAsync` gives null). A 429 is now `AccordionQ2ThrottledException`, still an
+  `AccordionQ2ApiException` with `StatusCode` 429, so existing catches keep working. `AccordionQ2SecurityReason` has two
+  new values: a `switch` over it without a default case should handle them. `StationRole` and `SecurityMode` are new
+  names in `AccordionQ2.WebApiClient.Models`: code that imports that namespace and another with the same names needs an
+  alias.
 - Event-stream errors other than 401, 403 and a 404 without a message now carry the station's message instead of
   "The event stream couldn't be opened: HTTP n". A 3xx without a message now says the client doesn't follow
   redirects and to check the base URL.

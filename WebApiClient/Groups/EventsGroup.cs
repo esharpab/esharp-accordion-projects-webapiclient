@@ -24,20 +24,27 @@ public sealed class EventsGroup
     /// <see cref="IOException"/> when the server ends the stream, and <see cref="AccordionQ2ApiException"/>
     /// (404 for a WebApi without the stream; <see cref="AccordionQ2SecurityException"/> for 401/403; otherwise with the
     /// station's own message when it gives one) when it can't be opened. A station in security mode On answers plain
-    /// HTTP with 308; the exception's message names the https URL. Reconnecting is the caller's: after
+    /// HTTP with 308; the exception's message names the https URL. A station that slows this client down answers 429:
+    /// the opening waits out its Retry-After up to <see cref="AccordionQ2ClientOptions.MaxThrottleWait"/>, else throws
+    /// <see cref="AccordionQ2ThrottledException"/>, whose <see cref="AccordionQ2ThrottledException.RetryAfter"/> a
+    /// reconnect loop should wait before it opens again. Reconnecting is the caller's: after
     /// opening again reload channels, as the contract asks, and also whenever <c>generation</c> changes or
     /// the ids have a gap. Missed events aren't replayed.
     /// </remarks>
     public async Task ListenAsync(Func<ServerEventDto, Task> onEvent, CancellationToken ct = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/events");
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-        using var response = await _transport.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        HttpRequestMessage Request()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "api/events");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+            return request;
+        }
+        using var response = await _transport.SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             var status = (int)response.StatusCode;
             var body = await ApiTransport.ReadErrorBodyAsync(response, ct).ConfigureAwait(false);
-            throw _transport.CreateError(status, body, $"The event stream couldn't be opened: HTTP {status}");
+            throw _transport.CreateError(response, body, $"The event stream couldn't be opened: HTTP {status}");
         }
 
         using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

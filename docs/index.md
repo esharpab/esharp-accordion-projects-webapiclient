@@ -53,6 +53,7 @@ Console.WriteLine($"CPU temperature: {temp}");
 - [System](api/system.md) &mdash; services, reboot, clock and boot.config
 - [Files](api/files.md) &mdash; files in the station's folders
 - [Firmware](api/firmware.md) &mdash; signed firmware releases and updates
+- [Security](api/security.md) &mdash; logins, users, keys, the certificate, security events, firewall and SSH, extensions, factory reset
 
 ## Reference
 

@@ -57,6 +57,14 @@ Each role may do what the roles below it may:
 
 The station decides which role each call needs; `GET /api/capabilities` needs none. The client reports a refusal as an [`AccordionQ2SecurityException`](error-handling.md#security-errors-401-and-403).
 
+### Logins (firmware 7.1.0, client 7.5.0)
+
+A person can log in with a user name and password instead of a key: `client.Security.LoginAsync(name, password)` gets a token, which the client then sends as `Authorization: Bearer`. The token lasts 15 minutes; renew it with `RenewAsync()` before `client.Security.TokenExpiresAt`, for up to 12 hours after the login. A login needs HTTPS (or the station itself). Machines keep using keys. See [Security calls](api/security.md#logging-in).
+
+### Slowed down
+
+In mode `On` a station slows an address down after failed keys, tokens, passwords or setup codes (429 with `Retry-After`). The client throws [`AccordionQ2ThrottledException`](error-handling.md#slowed-down-429) with `RetryAfter`, or waits and resends by itself when `AccordionQ2ClientOptions.MaxThrottleWait` allows the wait.
+
 ## HTTPS with a pinned certificate
 
 A station's HTTPS certificate is self-signed, and you often reach the station by IP address, so normal validation would refuse it. Pin it instead, by its SHA-256 fingerprint:

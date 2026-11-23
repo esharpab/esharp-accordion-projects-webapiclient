@@ -56,9 +56,21 @@ public sealed class AccordionQ2ClientOptions
     /// </summary>
     public HttpMessageHandler? Handler { get; set; }
 
+    /// <summary>
+    /// The longest <c>Retry-After</c> the client waits out by itself when a station slows it down (429, firmware 7.1.0 in
+    /// security mode <c>On</c>), then sends the request again, at most 3 times. Zero (the default) never waits: a 429
+    /// throws <see cref="AccordionQ2ThrottledException"/> at once. A longer Retry-After throws too, as does a request
+    /// whose body is a stream the client can't read twice (<c>Channels.UploadByteStreamAsync</c>).
+    /// The station answers 429 before it acts, so a resent request never does anything twice. The event stream's opening
+    /// waits the same way; the stream doesn't reconnect by itself.
+    /// </summary>
+    /// <remarks>A blocked address stays blocked while it keeps failing: waiting helps a burst of requests, not a wrong key.</remarks>
+    public TimeSpan MaxThrottleWait { get; set; } = TimeSpan.Zero;
+
     /// <summary>Describes the options without the API key.</summary>
     public override string ToString() =>
         $"ApiKey={(ApiKey is null ? "none" : "set")}, CertificateSha256={CertificateSha256 ?? "none"}, " +
         $"TrustedCaCertificate={(TrustedCaCertificate is null ? "none" : TrustedCaCertificate.Subject)}, " +
-        $"HttpClient={(HttpClient is null ? "own" : "caller's")}, Handler={(Handler is null ? "own" : "caller's")}";
+        $"HttpClient={(HttpClient is null ? "own" : "caller's")}, Handler={(Handler is null ? "own" : "caller's")}, " +
+        $"MaxThrottleWait={MaxThrottleWait.TotalSeconds:0.###} s";
 }

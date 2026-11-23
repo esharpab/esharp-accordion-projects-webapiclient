@@ -32,11 +32,11 @@ catch (AccordionQ2ApiException ex)
 |-------------|---------|---------------|
 | 400 | Bad Request | Invalid parameters, or `GetSamplesAsync()` called after `ReducedSet = true` |
 | 401 | Unauthorized | The station is in security mode `On` and the client sent no API key or login token, or one it doesn't accept; or a login's wrong password: `AccordionQ2SecurityException` |
-| 403 | Forbidden | The API key's role is too low (`AccordionQ2SecurityException`); or a change in a read-only folder ([Files](api/files.md)), a plain `AccordionQ2ApiException` |
+| 403 | Forbidden | The API key's role is too low (`AccordionQ2SecurityException`); or a change in a read-only folder ([Files](api/files.md)) or a claim from outside the station's own network segment, a plain `AccordionQ2ApiException` |
 | 404 | Not Found | Channel, resource, or config file does not exist; or a newer endpoint on older firmware |
 | 409 | Conflict | Someone else holds the [lease](api/lease.md); a codec version mismatch; a file that exists; boot.config changed since it was read; an update already running |
 | 423 | Locked | Another client holds the [lease](api/lease.md): changes and forced reads are refused |
-| 429 | Too Many Requests | Security mode `On` slows this client's address down: too many failed keys, tokens, passwords or setup codes, or too many requests without a key: `AccordionQ2ThrottledException` |
+| 429 | Too Many Requests | Security mode `On` slows this client's address down: too many failed keys, tokens, passwords or setup codes, or too many requests without a key: `AccordionQ2ThrottledException`. Also a stream's subscription limit (`Subscriptions.CreateAsync`), a plain `AccordionQ2ApiException` |
 | 500 | Internal Server Error | Hardware manager encountered an error |
 | 501 | Not Implemented | System and firmware calls on a WebApi that isn't running on a station |
 | 503 | Service Unavailable | The WebApi isn't connected to the hardware app |
@@ -69,7 +69,7 @@ catch (AccordionQ2SecurityException ex)
 }
 ```
 
-A 403 that doesn't name a role, such as a change in a read-only folder, stays a plain `AccordionQ2ApiException`.
+A 403 that doesn't name a role, such as a change in a read-only folder, stays a plain `AccordionQ2ApiException`, and so does one whose `requires` is `Anonymous`: an endpoint everyone may call doesn't refuse for a role. The claim's 403 (`A station is claimed from its own network segment only`) is one.
 
 ## Slowed down (429)
 
@@ -82,7 +82,7 @@ A station in security mode `On` (firmware 7.1.0) slows an address down after fai
 | `RequiredRole` | `string?` | The station's `requires` |
 | `StatusCode` | `int` | 429 |
 
-To let the client wait by itself, set `AccordionQ2ClientOptions.MaxThrottleWait`: a 429 whose `Retry-After` is at most that long is waited out and the request sent again, at most 3 times; a longer wait, or a fourth 429, throws. A stream upload (`Channels.UploadByteStreamAsync`) is never resent, as its stream may be read already. The default, zero, never waits.
+To let the client wait by itself, set `AccordionQ2ClientOptions.MaxThrottleWait`: a 429 whose `Retry-After` is at most that long is waited out and the request sent again, at most 3 times; a longer wait, or a fourth 429, throws. A stream upload (`Channels.UploadByteStreamAsync`) is never resent, as its stream may be read already. The default, zero, never waits, not even for a `Retry-After` of 0 or a date already past.
 
 ```csharp
 using var client = new AccordionQ2Client("https://station-12:5001", new AccordionQ2ClientOptions
@@ -100,6 +100,8 @@ catch (AccordionQ2ThrottledException ex)
     Console.WriteLine($"Slowed down; try again in {ex.RetryAfter?.TotalSeconds ?? 60} s");
 }
 ```
+
+Only a 429 that carries `Retry-After` or the station's `SecurityError` (with `requires`) is a slow-down. The subscription limit per stream (`Subscriptions.CreateAsync`: `A stream can have at most N subscriptions`) is a 429 with neither: a hard limit that waiting doesn't lift. It is thrown as a plain `AccordionQ2ApiException` with the station's text as the message, and never resent.
 
 A blocked address stays blocked while it keeps failing: waiting helps a burst of requests, not a wrong key. The [event stream](api/events.md) doesn't reconnect by itself; a reconnect loop should wait `RetryAfter` before it opens again.
 

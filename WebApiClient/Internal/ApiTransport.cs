@@ -44,6 +44,16 @@ internal sealed class ApiTransport
 
     internal bool HasApiKey => _apiKey is not null;
 
+    /// <summary>
+    /// Whether a request would go over plain HTTP to another host (not <c>localhost</c> or a loopback address): there a
+    /// password, setup code or private key would cross the network in clear text before the station could refuse it, so
+    /// the calls that carry one stop here instead (FW7 CLI-04 follow-up, as SEC-03 refuses them on the station).
+    /// </summary>
+    internal bool IsPlainHttpToAnotherHost => _baseAddress.Scheme == Uri.UriSchemeHttp && !_baseAddress.IsLoopback;
+
+    /// <summary>The station's base address every request path is resolved against.</summary>
+    internal Uri BaseAddress => _baseAddress;
+
     /// <summary>How long a 429's Retry-After may be for the transport to wait and resend; zero never waits.</summary>
     internal TimeSpan MaxThrottleWait { get; }
 
@@ -77,7 +87,8 @@ internal sealed class ApiTransport
             Prepare(request, credentials);
             var response = await Http.SendAsync(request, completion, ct).ConfigureAwait(false);
             response.RequestMessage ??= request;
-            if ((int)response.StatusCode != 429 || !resendable || attempt >= MaxThrottleRetries
+            // MaxThrottleWait zero is off: not even a Retry-After of 0 (or a date already past) is resent
+            if ((int)response.StatusCode != 429 || !resendable || attempt >= MaxThrottleRetries || MaxThrottleWait <= TimeSpan.Zero
                 || RetryAfterOf(response, DateTimeOffset.UtcNow) is not { } wait || wait > MaxThrottleWait)
                 return response;
             response.Dispose();
@@ -175,8 +186,9 @@ internal sealed class ApiTransport
 
     /// <summary>
     /// The exception for a refused request: <see cref="AccordionQ2SecurityException"/> for 401, and for a 403
-    /// that names the role it needs, with the server's error after the client's own text; <see cref="AccordionQ2ThrottledException"/>
-    /// for 429, with its Retry-After; otherwise <see cref="AccordionQ2ApiException"/> with the server's error,
+    /// that names the role it needs (other than Anonymous), with the server's error after the client's own text;
+    /// <see cref="AccordionQ2ThrottledException"/> for a 429 that is a slow-down (with Retry-After or the station's
+    /// SecurityError), with its Retry-After; otherwise <see cref="AccordionQ2ApiException"/> with the server's error,
     /// or <paramref name="fallback"/>, or the body.
     /// </summary>
     internal AccordionQ2ApiException CreateError(HttpResponseMessage response, string body, string? fallback = null, bool passwordCheck = false)
@@ -223,14 +235,19 @@ internal sealed class ApiTransport
                 message += $" (station: {serverMessage})";
             return new AccordionQ2SecurityException(status, reason, error?.Requires, message);
         }
-        if (status == 403 && !string.IsNullOrEmpty(error?.Requires))
+        // An endpoint everyone may call can't refuse for a role: its 403 has another cause (the claim's: not from the
+        // station's own network segment), which the station's own message says
+        if (status == 403 && !string.IsNullOrEmpty(error?.Requires) && !string.Equals(error!.Requires, "Anonymous", StringComparison.Ordinal))
         {
             var message = $"This needs the {error!.Requires} role, which this client's {(token ? "login" : "API key")} doesn't have";
             if (serverMessage is not null)
                 message += $" (station: {serverMessage})";
             return new AccordionQ2SecurityException(status, AccordionQ2SecurityReason.RoleTooLow, error.Requires, message);
         }
-        if (status == 429)
+        // Not every 429 is a slow-down: the station's slow-downs carry Retry-After and a SecurityError (with requires);
+        // another 429, e.g. a stream's subscription limit, is a hard limit that waiting won't lift, so it stays a plain
+        // AccordionQ2ApiException with the station's own text
+        if (status == 429 && (retryAfter is not null || !string.IsNullOrEmpty(error?.Requires)))
         {
             // Named as the slow-down it is (FW7 SEC-06, CRA-08), with when to try again
             var message = "The station is slowing this client down (HTTP 429: too many failed credentials or requests from this address)"

@@ -14,7 +14,8 @@ namespace AccordionQ2.WebApiClient.Tests;
 [TestClass]
 public class SecurityGroupTests
 {
-    private const string Url = "http://station:5000";
+    // HTTPS: the calls that carry a secret don't go over plain HTTP to another host
+    private const string Url = "https://station:5001";
     private const string Key = "acc_SECRETSECRETSECRET";
     private const string Token = "acs_TOKENTOKENTOKEN";
 
@@ -22,12 +23,13 @@ public class SecurityGroupTests
         "{\"token\":\"" + Token + "\",\"expiresAt\":\"2026-11-19T10:15:00+00:00\",\"user\":{\"id\":\"u1\",\"name\":\"ann\",\"role\":\"Admin\"," +
         "\"created\":\"2026-11-19T10:00:00+00:00\",\"createdBy\":\"claim\"},\"expiresIn\":900}";
 
-    private static (AccordionQ2Client Client, RecordingHandler Handler) Create(string? key = null, Func<HttpRequestMessage, HttpResponseMessage>? respond = null)
+    private static (AccordionQ2Client Client, RecordingHandler Handler) Create(string? key = null, Func<HttpRequestMessage, HttpResponseMessage>? respond = null,
+        string url = Url)
     {
         var handler = new RecordingHandler();
         if (respond is not null)
             handler.Respond = respond;
-        return (new AccordionQ2Client(Url, new AccordionQ2ClientOptions { ApiKey = key, Handler = handler }), handler);
+        return (new AccordionQ2Client(url, new AccordionQ2ClientOptions { ApiKey = key, Handler = handler }), handler);
     }
 
     private static HttpResponseMessage Ok(string json) => RecordingHandler.Json(HttpStatusCode.OK, json);
@@ -191,6 +193,60 @@ public class SecurityGroupTests
         Assert.IsNull(handler.Last.Header("X-Api-Key"));
         Assert.AreEqual("ABCD-EFGH", (string?)Body(handler.Last)["setupCode"]);
         Assert.AreEqual(Token, client.Security.Token);
+    }
+
+    [TestMethod]
+    public async Task A_claim_from_another_network_is_the_stations_reason_not_a_role()
+    {
+        // AccountsController fills requires with the endpoint's role, Anonymous for the claim: no role is missing
+        var (client, _) = Create(null, _ => RecordingHandler.Json(HttpStatusCode.Forbidden,
+            "{\"error\":\"A station is claimed from its own network segment only\",\"requires\":\"Anonymous\"}"));
+        using var _ = client;
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() => client.Security.ClaimAsync("ABCD-EFGH", null, "pw-123456789012"));
+        Assert.AreEqual(403, ex.StatusCode);
+        Assert.AreEqual("A station is claimed from its own network segment only", ex.Message);
+    }
+
+    [TestMethod]
+    public async Task Secrets_never_leave_over_plain_HTTP_to_another_host()
+    {
+        var (client, handler) = Create(Key, _ => Ok(Login), "http://station:5000");
+        using var _ = client;
+        client.Security.Token = Token;
+        var s = client.Security;
+        Func<Task>[] calls =
+        [
+            () => s.LoginAsync("ann", "pw-123456789012"),
+            () => s.ClaimAsync("ABCD-EFGH", null, "pw-123456789012"),
+            () => s.ChangeOwnPasswordAsync("old-password-1", "new-password-1"),
+            () => s.CreateUserAsync("bob", StationRole.Viewer, "pw-123456789012"),
+            () => s.SetUserPasswordAsync("u1", "pw-123456789012"),
+            () => s.InstallCertificateAsync(new InstallCertificateDto { CertificatePem = "C", PrivateKeyPem = "K" }),
+        ];
+        foreach (var call in calls)
+        {
+            var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(call);
+            Assert.Contains("https://station:5001", ex.Message);
+            Assert.DoesNotContain("pw-123456789012", ex.Message);
+        }
+        Assert.IsEmpty(handler.Requests, "nothing crossed the network");
+        Assert.AreEqual(Token, client.Security.Token);
+
+        handler.Respond = _ => Ok("[]");
+        await s.GetUsersAsync(); // a call without a secret goes as before
+        Assert.HasCount(1, handler.Requests);
+    }
+
+    [TestMethod]
+    public async Task On_the_station_plain_HTTP_carries_them()
+    {
+        foreach (var url in new[] { "http://localhost:5000", "http://127.0.0.1:5000", "http://[::1]:5000" })
+        {
+            var (client, handler) = Create(null, _ => Ok(Login), url);
+            using var _ = client;
+            await client.Security.LoginAsync("ann", "pw-123456789012");
+            Assert.HasCount(1, handler.Requests, url);
+        }
     }
 
     [TestMethod]

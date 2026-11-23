@@ -12,8 +12,11 @@ namespace AccordionQ2.WebApiClient.Groups;
 /// 7.1.0 answers 404.
 /// </summary>
 /// <remarks>
-/// A call that carries a password (login, claim, own password, a user's password, a new user) needs HTTPS or the
-/// station itself: over plain HTTP from another host the station answers 400 in every mode.
+/// A call that carries a secret (login, claim, own password, a user's password, a new user, installing a certificate)
+/// needs HTTPS or the station itself: over plain HTTP from another host the station refuses it in every mode, but only
+/// once the secret has crossed the network. So the client doesn't send it: such a call throws
+/// <see cref="InvalidOperationException"/> when the base address is <c>http://</c> and not <c>localhost</c> or a
+/// loopback address.
 /// </remarks>
 public sealed class SecurityGroup : ApiGroupBase
 {
@@ -62,9 +65,13 @@ public sealed class SecurityGroup : ApiGroupBase
     /// <see cref="AccordionQ2SecurityException"/> with <see cref="AccordionQ2SecurityReason.WrongPassword"/>; too many
     /// throw <see cref="AccordionQ2ThrottledException"/>; 503 when logins are off on the station.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the password isn't sent.</exception>
     public async Task<LoginResponseDto> LoginAsync(string name, string password, CancellationToken ct = default)
-        => Use(await SendJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/security/login", new { name, password }, Credentials.None,
+    {
+        NeedSecureChannel("A login");
+        return Use(await SendJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/security/login", new { name, password }, Credentials.None,
             passwordCheck: true, ct).ConfigureAwait(false));
+    }
 
     /// <summary>
     /// A new token for the same login (Viewer; until 12 hours after the login), sent with <see cref="Token"/> only. 401
@@ -106,9 +113,13 @@ public sealed class SecurityGroup : ApiGroupBase
     /// admin. <paramref name="name"/> null makes <c>admin</c>. 400 for a wrong code, 403 from another network, 409 when
     /// already claimed, 429 after too many wrong codes.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the code and password aren't sent.</exception>
     public async Task<LoginResponseDto> ClaimAsync(string setupCode, string? name, string password, CancellationToken ct = default)
-        => Use(await SendJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/security/claim", new { setupCode, name, password }, Credentials.None,
+    {
+        NeedSecureChannel("A claim");
+        return Use(await SendJsonAsync<LoginResponseDto>(HttpMethod.Post, "api/security/claim", new { setupCode, name, password }, Credentials.None,
             passwordCheck: false, ct).ConfigureAwait(false));
+    }
 
     /// <summary>
     /// Changes the logged-in user's own password (Viewer; over HTTPS or on the station), sent with <see cref="Token"/>
@@ -116,12 +127,31 @@ public sealed class SecurityGroup : ApiGroupBase
     /// current password throws <see cref="AccordionQ2SecurityException"/> with <see cref="AccordionQ2SecurityReason.WrongPassword"/>
     /// (the token stays valid); 400 for a new password the station refuses.
     /// </summary>
-    /// <exception cref="InvalidOperationException">This client has no login token: an API key has no password.</exception>
+    /// <exception cref="InvalidOperationException">This client has no login token: an API key has no password; or the base
+    /// address is plain HTTP to another host: the passwords aren't sent.</exception>
     public async Task<LoginResponseDto> ChangeOwnPasswordAsync(string currentPassword, string newPassword, CancellationToken ct = default)
     {
         NeedToken("Changing the own password");
+        NeedSecureChannel("Changing the own password");
         return Use(await SendJsonAsync<LoginResponseDto>(HttpMethod.Put, "api/security/password", new { currentPassword, newPassword },
             Credentials.TokenOnly, passwordCheck: true, ct).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Stops a call that carries a password, setup code or private key before it leaves this client over plain HTTP to
+    /// another host (FW7 CLI-04 follow-up): the station would refuse it (SEC-03: 400, or 308 in On), but only after the
+    /// secret had crossed the network in clear text. As the Web UI's certificate button is disabled there (UI-01).
+    /// </summary>
+    private void NeedSecureChannel(string what)
+    {
+        if (!_transport.IsPlainHttpToAnotherHost)
+            return;
+        var at = _transport.BaseAddress;
+        var https = new UriBuilder(at) { Scheme = Uri.UriSchemeHttps, Port = at.Port == 5000 ? 5001 : -1 }.Uri;
+        throw new InvalidOperationException(
+            $"{what} carries a secret, and this client's base address ({at.GetLeftPart(UriPartial.Authority)}) is plain HTTP to another host: " +
+            "the secret would cross the network in clear text before the station refused it. Use the station's HTTPS address " +
+            $"(e.g. {https.GetLeftPart(UriPartial.Authority)}) or run on the station (http://localhost)");
     }
 
     private void NeedToken(string what)
@@ -140,12 +170,20 @@ public sealed class SecurityGroup : ApiGroupBase
     /// Makes a user (over HTTPS or on the station). 400 for a name or password the station refuses, 409 for the first
     /// admin of an unclaimed station unless this client has an admin API key in mode On (claim the station instead).
     /// </summary>
-    public Task<UserDto> CreateUserAsync(string name, StationRole role, string password, CancellationToken ct = default)
-        => PostAsync<UserDto>("api/security/users", new { name, role, password }, ct);
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the password isn't sent.</exception>
+    public async Task<UserDto> CreateUserAsync(string name, StationRole role, string password, CancellationToken ct = default)
+    {
+        NeedSecureChannel("Making a user");
+        return await PostAsync<UserDto>("api/security/users", new { name, role, password }, ct).ConfigureAwait(false);
+    }
 
     /// <summary>Sets a user's password (over HTTPS or on the station): that user's logins end everywhere. 404 for an unknown id.</summary>
-    public Task SetUserPasswordAsync(string id, string password, CancellationToken ct = default)
-        => PutAsync($"api/security/users/{Uri.EscapeDataString(id)}/password", new { password }, ct);
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the password isn't sent.</exception>
+    public async Task SetUserPasswordAsync(string id, string password, CancellationToken ct = default)
+    {
+        NeedSecureChannel("Setting a user's password");
+        await PutAsync($"api/security/users/{Uri.EscapeDataString(id)}/password", new { password }, ct).ConfigureAwait(false);
+    }
 
     /// <summary>Sets a user's role; 400 when it would leave mode On without an admin, 404 for an unknown id.</summary>
     public Task<UserDto> SetUserRoleAsync(string id, StationRole role, CancellationToken ct = default)
@@ -186,10 +224,17 @@ public sealed class SecurityGroup : ApiGroupBase
     /// <summary>
     /// Installs the site's own certificate. It serves from the next handshake and open TLS connections are closed:
     /// a client pinned to the old fingerprint must be given the new <see cref="CertificateDto.Sha256"/>. 400 for a
-    /// certificate the station refuses, and over plain HTTP from another host.
+    /// certificate the station refuses.
     /// </summary>
-    public Task<CertificateDto> InstallCertificateAsync(InstallCertificateDto certificate, CancellationToken ct = default)
-        => PutAsync<CertificateDto>("api/security/certificate", certificate ?? throw new ArgumentNullException(nameof(certificate)), ct);
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the private key isn't
+    /// sent (the station refuses an install there in every mode, SEC-03).</exception>
+    public async Task<CertificateDto> InstallCertificateAsync(InstallCertificateDto certificate, CancellationToken ct = default)
+    {
+        if (certificate is null)
+            throw new ArgumentNullException(nameof(certificate));
+        NeedSecureChannel("Installing a certificate");
+        return await PutAsync<CertificateDto>("api/security/certificate", certificate, ct).ConfigureAwait(false);
+    }
 
     /// <summary>Removes the site certificate: the self-signed one serves again. 404 without a site certificate.</summary>
     public Task<CertificateDto> RemoveCertificateAsync(CancellationToken ct = default)

@@ -87,6 +87,37 @@ public class ThrottleTests
     }
 
     [TestMethod]
+    public async Task Off_never_resends_not_even_a_Retry_After_of_zero_or_a_past_date()
+    {
+        var (client, handler) = Create(_ => Throttled(TimeSpan.Zero));
+        using var _ = client;
+        await Assert.ThrowsExactlyAsync<AccordionQ2ThrottledException>(() => client.Capabilities.GetAsync());
+        Assert.HasCount(1, handler.Requests, "zero is off");
+
+        handler.Respond = _ =>
+        {
+            var response = Throttled(null);
+            response.Headers.RetryAfter = new RetryConditionHeaderValue(DateTimeOffset.UtcNow.AddSeconds(-5));
+            return response;
+        };
+        await Assert.ThrowsExactlyAsync<AccordionQ2ThrottledException>(() => client.Capabilities.GetAsync());
+        Assert.HasCount(2, handler.Requests);
+    }
+
+    [TestMethod]
+    public async Task A_429_that_isnt_a_slow_down_stays_the_stations_error()
+    {
+        // SubscriptionsController's limit per stream: no Retry-After, no SecurityError; waiting won't lift it
+        const string Limit = "A stream can have at most 32 subscriptions";
+        var (client, handler) = Create(_ => RecordingHandler.Json(HttpStatusCode.TooManyRequests, "{\"error\":\"" + Limit + "\"}"), TimeSpan.FromSeconds(10));
+        using var _ = client;
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() => client.Subscriptions.CreateAsync("s1", ["Mod.Ch"], 100));
+        Assert.AreEqual(429, ex.StatusCode);
+        Assert.AreEqual(Limit, ex.Message);
+        Assert.HasCount(1, handler.Requests);
+    }
+
+    [TestMethod]
     public async Task With_MaxThrottleWait_the_request_is_resent_with_the_same_body()
     {
         var (client, handler) = Create(n => n == 1 ? Throttled(TimeSpan.Zero) : RecordingHandler.Json(HttpStatusCode.OK, "{\"leaseId\":\"l1\",\"holder\":\"t\"}"),

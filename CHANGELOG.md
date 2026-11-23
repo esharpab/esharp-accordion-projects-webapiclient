@@ -33,10 +33,17 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   `SetExtensionUploadsAsync`, `SetModuleImageRoleAsync`. The factory reset: `GetFactoryResetPreviewAsync`,
   `StartFactoryResetAsync`, `GetLastFactoryResetAsync` (null without a record). The models are in `SecurityModels.cs`,
   with the enums `StationRole` and `SecurityMode` for the calls' arguments; answers keep the station's names as strings.
+  The calls that carry a secret (login, claim, own password, a new user, a user's password, installing a certificate)
+  throw `InvalidOperationException` instead of sending it when the base address is plain `http://` to another host
+  (not `localhost` or a loopback address): the station would refuse them there, but only after the secret had crossed
+  the network in clear text.
 - `AccordionQ2ThrottledException` (a subclass of `AccordionQ2ApiException`) for 429, the slow-down of security mode On
   (FW7 SEC-06, CRA-08): `RetryAfter` (from `Retry-After`, seconds or an HTTP date), `StationMessage`, `RequiredRole`, and
   a message that says it is a slow-down and when to try again. 7.4.0 and earlier threw a plain `AccordionQ2ApiException`.
-- `AccordionQ2ClientOptions.MaxThrottleWait` (zero by default: off): a 429 whose Retry-After is at most this long is
+  Only a 429 with `Retry-After` or the station's `SecurityError` is one: another 429, such as a stream's subscription
+  limit, stays a plain `AccordionQ2ApiException` with the station's text. A 403 whose `requires` is `Anonymous` (the
+  claim from another network segment) is a plain `AccordionQ2ApiException` too, not `RoleTooLow`.
+- `AccordionQ2ClientOptions.MaxThrottleWait` (zero by default: off, not even a `Retry-After` of 0 is resent): a 429 whose Retry-After is at most this long is
   waited out and the request sent again, at most 3 times; a stream upload (`Channels.UploadByteStreamAsync`) is never
   resent. The event stream's opening waits the same way; the stream still doesn't reconnect by itself.
 - `AccordionQ2SecurityReason.InvalidToken` (401 for a login token the station no longer accepts) and `WrongPassword`

@@ -230,7 +230,9 @@ public sealed class SecurityEventDto
 
 /// <summary>
 /// The firewall and SSH settings, applied in mode On: whether SSH is open and from where (CIDRs or addresses, empty or
-/// null for any), the XVC ports an admin opens (closed when empty) and from where.
+/// null for any), the XVC ports an admin opens (closed when empty) and from where, and the container ports (TCP ports
+/// Docker publishes on the station, as other hosts connect to them) that stay reachable from other hosts and from where:
+/// in On every other connection forwarded to a container from outside the station is dropped (firmware 7.1.0).
 /// </summary>
 public sealed class HostSettingsDto
 {
@@ -238,6 +240,8 @@ public sealed class HostSettingsDto
     public List<string>? SshFrom { get; set; }
     public List<int>? XvcPorts { get; set; }
     public List<string>? XvcFrom { get; set; }
+    public List<int>? ContainerPorts { get; set; }
+    public List<string>? ContainerFrom { get; set; }
 }
 
 /// <summary>The firewall's or SSH's state (NotApplied, Applied, Failed, Unsupported), the helper's problem, when it was last reconciled.</summary>

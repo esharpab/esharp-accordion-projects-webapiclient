@@ -90,7 +90,7 @@ foreach (var e in log.Events)                 // newest first
 | Call | Answer |
 |---|---|
 | `GetHostAsync()` | `HostSecurityDto`: the settings, whether the firewall and SSH settings are in effect, the TCP ports the firewall opens in `On`, the SSH port, the number of SSH keys |
-| `SetHostAsync(HostSettingsDto)` | stored in every mode, applied at once in `On`: `SshAllowed`, `SshFrom`, `XvcPorts`, `XvcFrom` (CIDRs or addresses; empty or null for any) |
+| `SetHostAsync(HostSettingsDto)` | stored in every mode, applied at once in `On`: `SshAllowed`, `SshFrom`, `XvcPorts`, `XvcFrom`, `ContainerPorts` (TCP ports Docker publishes that other hosts may reach in `On`; firmware 7.1.0), `ContainerFrom` (CIDRs or addresses; empty or null for any) |
 | `GetSshKeysAsync()` | `List<SshKeyDto>` of the `accordion` user |
 | `AddSshKeyAsync(line)` | one authorized_keys line without options: whoever holds the key gets a shell on the station |
 | `RemoveSshKeyAsync(id)` | `SshKeysDto`: the keys left, with a warning when that was the last one in `On` |

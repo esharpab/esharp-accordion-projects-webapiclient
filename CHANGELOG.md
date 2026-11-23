@@ -37,6 +37,9 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   throw `InvalidOperationException` instead of sending it when the base address is plain `http://` to another host
   (not `localhost` or a loopback address): the station would refuse them there, but only after the secret had crossed
   the network in clear text.
+- `HostSettingsDto.ContainerPorts` and `ContainerFrom` (firmware 7.1.0): the TCP ports Docker publishes on the station
+  that stay reachable from other hosts in security mode On, and from where; every other connection forwarded to a
+  container from outside the station is dropped in On.
 - The station's certificate request (firmware 7.1.0, FW7 CERT-01), for a site CA without a private key leaving the
   station: `Security.RequestCertificateAsync(names)` (a key made on the station and its CSR, `CertificateRequestDto`),
   `GetCertificateRequestAsync()` (null when none is pending), `DeleteCertificateRequestAsync()`, and

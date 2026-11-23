@@ -53,10 +53,26 @@ A wrong name or password throws `AccordionQ2SecurityException` with `Reason` `Wr
 | `SetModeAsync(mode)` | `SecurityStateDto` with `Warnings`; `On` needs an admin key or login on this client, HTTPS available, and this request over HTTPS or on the station |
 | `CreateKeyAsync(name, role)` | `CreatedApiKeyDto`: `Key` is shown this once only |
 | `RevokeKeyAsync(id)` | it stops working at once |
-| `GetCertificateAsync()` | `CertificateDto`: `Sha256` is the fingerprint to pin |
+| `GetCertificateAsync()` | `CertificateDto`: `Sha256` is the fingerprint to pin; `Warnings` when it has expired or expires within 30 days; `DefaultRequestNames` |
 | `InstallCertificateAsync(InstallCertificateDto)` | the site's certificate, PEM or PKCS#12; open TLS connections close, pinned clients need the new `Sha256` |
 | `RemoveCertificateAsync()` | the self-signed certificate serves again |
 | `RegenerateCertificateAsync(extraNames)` | a new self-signed certificate (a new fingerprint) |
+| `RequestCertificateAsync(names)` | `CertificateRequestDto`: a new key made on the station (it never leaves it) and the CSR for your CA (`CsrPem`); no names: `DefaultRequestNames`. It replaces a pending request |
+| `GetCertificateRequestAsync()` | the pending request (names, `Created`, `CsrPem`; never the key), or null |
+| `DeleteCertificateRequestAsync()` | discards the pending request and its key |
+| `InstallSignedCertificateAsync(certificatePem)` | the certificate the CA signed for the pending request (leaf and intermediates, PEM, no key): it serves as the site certificate and the request is used up; 400 when it isn't the pending request's |
+
+Your own CA without a private key leaving the station:
+
+```csharp
+var request = await client.Security.RequestCertificateAsync();          // the station's default names
+File.WriteAllText("station-12.csr", request.CsrPem);                   // give it to the CA
+// ... the CA issues station-12.cer (PEM, with its chain)
+var installed = await client.Security.InstallSignedCertificateAsync(File.ReadAllText("station-12.cer"));
+Console.WriteLine(installed.Sha256);
+```
+
+The certificate calls need HTTPS or the station itself: over plain HTTP from another host the station answers 400.
 
 ## Security events
 

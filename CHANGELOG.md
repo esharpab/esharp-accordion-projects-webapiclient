@@ -37,6 +37,11 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   throw `InvalidOperationException` instead of sending it when the base address is plain `http://` to another host
   (not `localhost` or a loopback address): the station would refuse them there, but only after the secret had crossed
   the network in clear text.
+- The station's certificate request (firmware 7.1.0, FW7 CERT-01), for a site CA without a private key leaving the
+  station: `Security.RequestCertificateAsync(names)` (a key made on the station and its CSR, `CertificateRequestDto`),
+  `GetCertificateRequestAsync()` (null when none is pending), `DeleteCertificateRequestAsync()`, and
+  `InstallSignedCertificateAsync(certificatePem)` (the signed certificate and its chain, no key). `CertificateDto` has
+  `DefaultRequestNames`, and on a GET `Warnings` names an expired certificate or one that expires within 30 days.
 - `AccordionQ2ThrottledException` (a subclass of `AccordionQ2ApiException`) for 429, the slow-down of security mode On
   (FW7 SEC-06, CRA-08): `RetryAfter` (from `Retry-After`, seconds or an HTTP date), `StationMessage`, `RequiredRole`, and
   a message that says it is a slow-down and when to try again. 7.4.0 and earlier threw a plain `AccordionQ2ApiException`.

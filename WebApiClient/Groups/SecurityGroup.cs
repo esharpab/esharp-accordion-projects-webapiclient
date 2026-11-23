@@ -247,6 +247,41 @@ public sealed class SecurityGroup : ApiGroupBase
     public Task<CertificateDto> RegenerateCertificateAsync(IEnumerable<string>? extraNames = null, CancellationToken ct = default)
         => PostAsync<CertificateDto>("api/security/certificate/regenerate", new { extraNames = extraNames?.ToArray() }, ct);
 
+    // ---------- the certificate request (firmware 7.1.0, FW7 CERT-01) ----------
+
+    /// <summary>
+    /// Makes a certificate request on the station: a new key pair whose private key never leaves the station, and the
+    /// CSR (<see cref="CertificateRequestDto.CsrPem"/>) for the site's CA to sign. <paramref name="names"/> are DNS names
+    /// or IP addresses, the first one the subject's common name (at most 32, no wildcards); none: the station's default
+    /// names (<see cref="CertificateDto.DefaultRequestNames"/>). It replaces a pending request, whose key is then deleted.
+    /// Install the signed certificate with <see cref="InstallSignedCertificateAsync"/>. Over HTTPS or on the station:
+    /// 400 over plain HTTP from another host (no secret is sent, but the station keeps one rule for certificate changes).
+    /// </summary>
+    public Task<CertificateRequestDto> RequestCertificateAsync(IEnumerable<string>? names = null, CancellationToken ct = default)
+        => PostAsync<CertificateRequestDto>("api/security/certificate/request", new { names = names?.ToArray() }, ct);
+
+    /// <summary>The pending certificate request (its names, when, by whom, the CSR; never the key); null when none is pending.</summary>
+    public Task<CertificateRequestDto?> GetCertificateRequestAsync(CancellationToken ct = default)
+        => GetOrNullAsync<CertificateRequestDto>("api/security/certificate/request", ct);
+
+    /// <summary>Discards the pending certificate request: its key is deleted, so a certificate signed for it no longer installs. 404 when none is pending.</summary>
+    public Task DeleteCertificateRequestAsync(CancellationToken ct = default)
+        => DeleteAsync("api/security/certificate/request", ct);
+
+    /// <summary>
+    /// Installs the certificate a CA signed for the pending request: <paramref name="certificatePem"/> is the leaf and
+    /// its intermediates as PEM, no key (the key is the request's, on the station). It then serves as a site certificate
+    /// (the same checks and warnings as <see cref="InstallCertificateAsync"/>; open TLS connections are closed) and the
+    /// request is used up. 400 when no request is pending or the certificate's public key isn't the request's, and over
+    /// plain HTTP from another host.
+    /// </summary>
+    public Task<CertificateDto> InstallSignedCertificateAsync(string certificatePem, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(certificatePem))
+            throw new ArgumentException("The signed certificate (PEM) is empty", nameof(certificatePem));
+        return PutAsync<CertificateDto>("api/security/certificate", new { certificatePem }, ct);
+    }
+
     // ---------- security events (SecurityEventsController) ----------
 
     /// <summary>

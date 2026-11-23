@@ -158,6 +158,25 @@ public sealed class CertificateDto
     public ClonedFromDto? Cloned { get; set; }
     public string CertificatePem { get; set; } = string.Empty;
     public int? OpenConnectionsClosed { get; set; }
+    /// <summary>A change's warnings; on a GET (firmware 7.1.0): an expired certificate, or one that expires within 30 days, with the date.</summary>
+    public List<string>? Warnings { get; set; }
+    /// <summary>The names a certificate request without names gets (firmware 7.1.0); null from older firmware.</summary>
+    public List<string>? DefaultRequestNames { get; set; }
+}
+
+/// <summary>
+/// A certificate request made on the station (firmware 7.1.0): <see cref="Names"/> (the first the subject's common
+/// name), when and by whom, the CSR to give the CA (<see cref="CsrPem"/>), and the SHA-256 over its public key; never
+/// the key. <see cref="Replaced"/> (when made): it replaced a pending request, whose key is gone.
+/// </summary>
+public sealed class CertificateRequestDto
+{
+    public List<string> Names { get; set; } = [];
+    public DateTimeOffset Created { get; set; }
+    public string? CreatedBy { get; set; }
+    public string CsrPem { get; set; } = string.Empty;
+    public string PublicKeySha256 { get; set; } = string.Empty;
+    public bool? Replaced { get; set; }
     public List<string>? Warnings { get; set; }
 }
 

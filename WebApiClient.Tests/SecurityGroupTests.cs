@@ -281,6 +281,11 @@ public class SecurityGroupTests
         await Is(() => s.InstallCertificateAsync(new InstallCertificateDto { PfxBase64 = "UEZY" }), "PUT", "/api/security/certificate");
         await Is(() => s.RemoveCertificateAsync(), "DELETE", "/api/security/certificate");
         await Is(() => s.RegenerateCertificateAsync(), "POST", "/api/security/certificate/regenerate");
+        await Is(() => s.RequestCertificateAsync(["a.example"]), "POST", "/api/security/certificate/request");
+        await Is(() => s.GetCertificateRequestAsync(), "GET", "/api/security/certificate/request");
+        await Is(() => s.DeleteCertificateRequestAsync(), "DELETE", "/api/security/certificate/request");
+        await Is(() => s.InstallSignedCertificateAsync("LEAF"), "PUT", "/api/security/certificate");
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => s.InstallSignedCertificateAsync(" "));
         await Is(() => s.GetHostAsync(), "GET", "/api/security/host");
         await Is(() => s.SetHostAsync(new HostSettingsDto { SshAllowed = false }), "PUT", "/api/security/host");
         await Is(() => s.AddSshKeyAsync("ssh-ed25519 AAAA me"), "POST", "/api/security/ssh-keys");

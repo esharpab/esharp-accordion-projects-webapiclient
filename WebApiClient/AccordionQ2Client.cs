@@ -83,6 +83,12 @@ public sealed class AccordionQ2Client : IDisposable
     /// </summary>
     public SecurityGroup Security { get; }
 
+    /// <summary>
+    /// The station's documentation (firmware 7.1.0, <c>api/docs</c>): the pages it serves under <c>/docs/</c>, listed
+    /// and read as Markdown or HTML, for scripts and AI agents; no key needed.
+    /// </summary>
+    public DocsGroup Docs { get; }
+
     /// <summary>The header that carries the station API key.</summary>
     public const string ApiKeyHeader = "X-Api-Key";
 
@@ -175,6 +181,7 @@ public sealed class AccordionQ2Client : IDisposable
         Drummer        = new DrummerGroup(transport);
         JtagPorts      = new JtagPortsGroup(transport);
         Security       = new SecurityGroup(transport);
+        Docs           = new DocsGroup(transport);
     }
 
     /// <summary>

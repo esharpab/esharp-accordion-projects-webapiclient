@@ -31,6 +31,14 @@ public abstract class ApiGroupBase
         return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
     }
 
+    /// <summary>A GET whose answer is text (Markdown, HTML), as the station sent it.</summary>
+    private protected async Task<string> GetTextAsync(string path, CancellationToken ct = default)
+    {
+        using var response = await SendAsync(HttpMethod.Get, path, null, ct).ConfigureAwait(false);
+        await EnsureSuccessAsync(response).ConfigureAwait(false);
+        return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    }
+
     protected async Task PostAsync(string path, object? body = null, CancellationToken ct = default)
     {
         using var response = await SendAsync(HttpMethod.Post, path, Serialize(body), ct).ConfigureAwait(false);

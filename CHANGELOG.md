@@ -43,6 +43,10 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   station and holds no secret) and `RecoveryResetAdminAsync(user, password)` (`RecoveryResetDto`; while a recovery drive
   for the station is in it, anyone at the station can set an admin password; sent without the client's key or token,
   never over plain HTTP to another host; 409 without a drive). All three need no credential.
+- `client.Docs`: the station's documentation for scripts and AI agents (firmware 7.1.0, `api/docs`): `ListAsync()`
+  (`DocsListDto`: the pages with their path, title, section and summary, `/docs/` on the station's Web UI and its
+  llms.txt; empty with a note on a station without the pages or before 7.1.0) and `GetAsync(path, html: false)` (the
+  page's Markdown, or its HTML page). No credential needed. `CapabilitiesDto.Docs` (`docs`). docs/api/docs.md.
 - `HostSettingsDto.ContainerPorts` and `ContainerFrom` (firmware 7.1.0): the TCP ports Docker publishes on the station
   that stay reachable from other hosts in security mode On, and from where; every other connection forwarded to a
   container from outside the station is dropped in On.

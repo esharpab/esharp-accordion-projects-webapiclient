@@ -26,6 +26,12 @@ public class CapabilitiesDto
     /// </summary>
     public const string ResourcesTransact = "resources.transact";
 
+    /// <summary>
+    /// Feature name: the station has its documentation pages, which <see cref="Groups.DocsGroup"/> lists and reads
+    /// (firmware 7.1.0; a build without the pages doesn't list it).
+    /// </summary>
+    public const string Docs = "docs";
+
     /// <summary>The contract version; 0 for a WebApi that predates it.</summary>
     public int ApiVersion { get; set; }
 

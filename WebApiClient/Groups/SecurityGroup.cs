@@ -372,4 +372,35 @@ public sealed class SecurityGroup : ApiGroupBase
     /// <summary>The last factory reset's record; null when the station has none (and from a station before 7.1.0, which has no such endpoint).</summary>
     public Task<FactoryResetRecordDto?> GetLastFactoryResetAsync(CancellationToken ct = default)
         => GetOrNullAsync<FactoryResetRecordDto>("api/security/factory-reset", ct);
+
+    // ---------- the recovery drive (RecoveryController) ----------
+
+    /// <summary>
+    /// Whether the recovery window is open (anyone, every mode): a recovery drive for this station is in it. Null from a
+    /// station before 7.1.0, which has no such endpoint.
+    /// </summary>
+    public async Task<RecoveryDto?> GetRecoveryAsync(CancellationToken ct = default)
+        => await GetOrNullAsync<RecoveryDto>("api/security/recovery", ct).ConfigureAwait(false);
+
+    /// <summary>
+    /// The recovery drive's file, <c>accordion-recovery.json</c> (anyone, every mode): save it under that name in the top
+    /// folder of a FAT32 or exFAT USB drive and plug that into the station. It names the station and holds no secret.
+    /// </summary>
+    public Task<byte[]> DownloadRecoveryDriveFileAsync(CancellationToken ct = default)
+        => GetBytesAsync("api/security/recovery/drive-file", ct);
+
+    /// <summary>
+    /// Sets an admin's password while a recovery drive for this station is in it (anyone; over HTTPS or on the station),
+    /// sent without the client's key or token. <paramref name="user"/> null means <c>admin</c>; a missing user is made as
+    /// Admin, another role is made Admin, and that user's logins end; the mode, the keys and the other users stay. One
+    /// reset per insertion of the drive. 409 when no recovery drive is in the station, 400 for a password the station
+    /// refuses. The client doesn't log in: call <see cref="LoginAsync"/> with the new password.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the password isn't sent.</exception>
+    public async Task<RecoveryResetDto> RecoveryResetAdminAsync(string? user, string password, CancellationToken ct = default)
+    {
+        NeedSecureChannel("A password reset with the recovery drive");
+        return await SendJsonAsync<RecoveryResetDto>(HttpMethod.Post, "api/security/recovery/reset-admin", new { user, password }, Credentials.None,
+            passwordCheck: false, ct).ConfigureAwait(false);
+    }
 }

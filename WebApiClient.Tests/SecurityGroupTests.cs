@@ -222,6 +222,7 @@ public class SecurityGroupTests
             () => s.CreateUserAsync("bob", StationRole.Viewer, "pw-123456789012"),
             () => s.SetUserPasswordAsync("u1", "pw-123456789012"),
             () => s.InstallCertificateAsync(new InstallCertificateDto { CertificatePem = "C", PrivateKeyPem = "K" }),
+            () => s.RecoveryResetAdminAsync(null, "pw-123456789012"),
         ];
         foreach (var call in calls)
         {
@@ -299,6 +300,8 @@ public class SecurityGroupTests
         await Is(() => s.GetFactoryResetPreviewAsync(), "GET", "/api/security/factory-reset/preview");
         await Is(() => s.StartFactoryResetAsync("A004166", true), "POST", "/api/security/factory-reset");
         await Is(() => s.GetLastFactoryResetAsync(), "GET", "/api/security/factory-reset");
+        await Is(() => s.GetRecoveryAsync(), "GET", "/api/security/recovery");
+        await Is(() => s.DownloadRecoveryDriveFileAsync(), "GET", "/api/security/recovery/drive-file");
         await Is(() => s.GetEventsAsync(), "GET", "/api/security/events?tail=200");
         await Is(() => s.GetEventsAsync(50, new DateTimeOffset(2026, 11, 19, 10, 0, 0, TimeSpan.FromHours(1)), ["LoginFailed", "Throttled"]),
             "GET", "/api/security/events?tail=50&since=2026-11-19T10%3A00%3A00.0000000%2B01%3A00&kind=LoginFailed&kind=Throttled");
@@ -313,6 +316,41 @@ public class SecurityGroupTests
         Assert.AreEqual("On", (string?)Body(handler.Last)["mode"]);
         await client.Security.CreateUserAsync("bob", StationRole.Operator, "pw");
         Assert.AreEqual("Operator", (string?)Body(handler.Last)["role"]);
+    }
+
+    [TestMethod]
+    public async Task The_recovery_drive_reset_goes_without_credentials_and_reads_the_window()
+    {
+        // Firmware 7.1.0 RecoveryController: anonymous; the reset never rides on a key or token, and doesn't log in
+        var (client, handler) = Create(Key, _ => Ok(
+            "{\"user\":{\"id\":\"u1\",\"name\":\"admin\",\"role\":\"Admin\",\"created\":\"2026-11-19T10:00:00+00:00\",\"createdBy\":\"claim\"},\"created\":false,\"message\":\"Sign in\"}"));
+        using var _ = client;
+        client.Security.Token = Token;
+        var reset = await client.Security.RecoveryResetAdminAsync(null, "pw-123456789012");
+        Assert.AreEqual(HttpMethod.Post, handler.Last.Method);
+        Assert.AreEqual("/api/security/recovery/reset-admin", handler.Last.Uri!.AbsolutePath);
+        Assert.IsNull(handler.Last.Header("X-Api-Key"));
+        Assert.IsNull(handler.Last.Header("Authorization"));
+        Assert.AreEqual("pw-123456789012", (string?)Body(handler.Last)["password"]);
+        Assert.AreEqual("admin", reset.User.Name);
+        Assert.IsFalse(reset.Created);
+        Assert.AreEqual(Token, client.Security.Token, "no login: the caller signs in with the new password");
+
+        handler.Respond = _ => Ok("{\"window\":\"open\",\"until\":\"2026-11-19T10:15:00+00:00\",\"usbPortsOff\":true,\"hint\":\"h\",\"steps\":[\"a\",\"b\"]}");
+        var window = await client.Security.GetRecoveryAsync();
+        Assert.IsTrue(window!.IsOpen);
+        Assert.IsTrue(window.UsbPortsOff);
+        Assert.AreEqual(new DateTimeOffset(2026, 11, 19, 10, 15, 0, TimeSpan.Zero), window.Until);
+        Assert.HasCount(2, window.Steps);
+
+        handler.Respond = _ => RecordingHandler.Json(HttpStatusCode.NotFound, "{}");
+        Assert.IsNull(await client.Security.GetRecoveryAsync(), "a station before 7.1.0");
+
+        handler.Respond = _ => RecordingHandler.Json(HttpStatusCode.Conflict,
+            "{\"error\":\"No recovery drive is in the station: insert the recovery drive\",\"requires\":\"Anonymous\"}");
+        var ex = await Assert.ThrowsExactlyAsync<AccordionQ2ApiException>(() => client.Security.RecoveryResetAdminAsync("admin", "pw-123456789012"));
+        Assert.AreEqual(409, ex.StatusCode);
+        Assert.Contains("insert the recovery drive", ex.Message);
     }
 
     [TestMethod]

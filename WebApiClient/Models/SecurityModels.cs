@@ -400,3 +400,28 @@ public sealed class FactoryResetRecordDto
     public List<string> Warnings { get; set; } = [];
     public bool Rebooted { get; set; }
 }
+
+/// <summary>
+/// The recovery window (firmware 7.1.0, <c>GET /api/security/recovery</c>): <c>Window</c> is "open" while a recovery
+/// drive for the station is in it (at most 15 minutes, until the drive is taken out, one reset per insertion), else
+/// "closed"; <c>Until</c> null while closed; <c>UsbPortsOff</c> whether the drive needs a restart of the station.
+/// </summary>
+public sealed class RecoveryDto
+{
+    public string Window { get; set; } = "closed";
+    public DateTimeOffset? Until { get; set; }
+    public bool UsbPortsOff { get; set; }
+    public string Hint { get; set; } = string.Empty;
+    public List<string> Steps { get; set; } = [];
+
+    /// <summary>Whether an admin password can be set now (<see cref="SecurityGroup.RecoveryResetAdminAsync"/>).</summary>
+    public bool IsOpen => string.Equals(Window, "open", StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>What <c>POST /api/security/recovery/reset-admin</c> answers: the user whose password was set, whether it was made, and what to do now.</summary>
+public sealed class RecoveryResetDto
+{
+    public UserDto User { get; set; } = new();
+    public bool Created { get; set; }
+    public string Message { get; set; } = string.Empty;
+}

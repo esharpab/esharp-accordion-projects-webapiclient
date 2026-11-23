@@ -105,6 +105,22 @@ foreach (var e in log.Events)                 // newest first
 | `SetExtensionUploadsAsync(minutes)` | opens the file API's changes to the extensions folder in `On` for 1 to 1440 minutes, or closes them (0) |
 | `SetModuleImageRoleAsync(role)` | the role module images need in `On`: `Admin` (the default) or `Operator` |
 
+## Recovery drive
+
+For a station whose admin password is lost, by someone at the station. No credential is needed: the protection is that a recovery drive has to be plugged into the station.
+
+```csharp
+byte[] file = await client.Security.DownloadRecoveryDriveFileAsync();   // accordion-recovery.json
+File.WriteAllBytes(@"E:ccordion-recovery.json", file);               // the top folder of a FAT32 or exFAT USB drive
+// plug the drive into the station (restart the station with it in when its USB ports are off), then:
+RecoveryDto? window = await client.Security.GetRecoveryAsync();
+if (window?.IsOpen == true)
+    await client.Security.RecoveryResetAdminAsync("admin", newPassword);
+await client.Security.LoginAsync("admin", newPassword);
+```
+
+`GetRecoveryAsync()` says whether the recovery window is open (a recovery drive for this station is in it), until when, and whether the station's USB ports are off (`UsbPortsOff`: the drive then needs a restart of the station); null before 7.1.0. `RecoveryResetAdminAsync(user, password)` sets that user's password (`null` means `admin`; made as Admin if missing, made Admin if not) and ends their logins; the mode, the keys and the other users stay. One reset per insertion of the drive; the window also closes when the drive is taken out and after 15 minutes. 409 when no recovery drive is in the station, 400 for a password the station refuses. Like a login, it needs HTTPS or the station itself.
+
 ## Factory reset
 
 ```csharp

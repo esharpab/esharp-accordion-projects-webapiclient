@@ -37,6 +37,12 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   throw `InvalidOperationException` instead of sending it when the base address is plain `http://` to another host
   (not `localhost` or a loopback address): the station would refuse them there, but only after the secret had crossed
   the network in clear text.
+- The recovery drive (firmware 7.1.0), for a station whose admin password is lost: `Security.GetRecoveryAsync()`
+  (`RecoveryDto`: whether the recovery window is open, until when, whether the USB ports are off; null before 7.1.0),
+  `DownloadRecoveryDriveFileAsync()` (the bytes of `accordion-recovery.json`, to copy to a USB drive; it names the
+  station and holds no secret) and `RecoveryResetAdminAsync(user, password)` (`RecoveryResetDto`; while a recovery drive
+  for the station is in it, anyone at the station can set an admin password; sent without the client's key or token,
+  never over plain HTTP to another host; 409 without a drive). All three need no credential.
 - `HostSettingsDto.ContainerPorts` and `ContainerFrom` (firmware 7.1.0): the TCP ports Docker publishes on the station
   that stay reachable from other hosts in security mode On, and from where; every other connection forwarded to a
   container from outside the station is dropped in On.

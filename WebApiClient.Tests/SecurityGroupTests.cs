@@ -311,7 +311,6 @@ public class SecurityGroupTests
         await Is(() => s.StartFactoryResetAsync("A004166", true), "POST", "/api/security/factory-reset");
         await Is(() => s.GetLastFactoryResetAsync(), "GET", "/api/security/factory-reset");
         await Is(() => s.GetRecoveryAsync(), "GET", "/api/security/recovery");
-        await Is(() => s.DownloadRecoveryDriveFileAsync(), "GET", "/api/security/recovery/drive-file");
         await Is(() => s.GetEventsAsync(), "GET", "/api/security/events?tail=200");
         await Is(() => s.GetEventsAsync(50, new DateTimeOffset(2026, 11, 19, 10, 0, 0, TimeSpan.FromHours(1)), ["LoginFailed", "Throttled"]),
             "GET", "/api/security/events?tail=50&since=2026-11-19T10%3A00%3A00.0000000%2B01%3A00&kind=LoginFailed&kind=Throttled");
@@ -336,12 +335,15 @@ public class SecurityGroupTests
             "{\"user\":{\"id\":\"u1\",\"name\":\"admin\",\"role\":\"Admin\",\"created\":\"2026-11-19T10:00:00+00:00\",\"createdBy\":\"claim\"},\"created\":false,\"message\":\"Sign in\"}"));
         using var _ = client;
         client.Security.Token = Token;
+        var file = client.Security.MakeRecoveryDrive("A002531");
         var reset = await client.Security.RecoveryResetAdminAsync(null, "pw-123456789012");
         Assert.AreEqual(HttpMethod.Post, handler.Last.Method);
         Assert.AreEqual("/api/security/recovery/reset-admin", handler.Last.Uri!.AbsolutePath);
         Assert.IsNull(handler.Last.Header("X-Api-Key"));
         Assert.IsNull(handler.Last.Header("Authorization"));
         Assert.AreEqual("pw-123456789012", (string?)Body(handler.Last)["password"]);
+        Assert.AreEqual(client.Security.RecoveryKey!.Secret, (string?)Body(handler.Last)["secret"], "the secret the client kept");
+        Assert.DoesNotContain(client.Security.RecoveryKey.Secret, System.Text.Encoding.UTF8.GetString(file), "never in the file");
         Assert.AreEqual("admin", reset.User.Name);
         Assert.IsFalse(reset.Created);
         Assert.AreEqual(Token, client.Security.Token, "no login: the caller signs in with the new password");

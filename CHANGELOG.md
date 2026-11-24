@@ -5,6 +5,27 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- The recovery drive is made by the client (firmware 7.1.0's final build): `Security.MakeRecoveryDrive(station)` returns
+  the bytes of `accordion-recovery.json` (`kind`, `station`, `created`, `hash`; never the secret) and keeps the drive's
+  random secret in `Security.RecoveryKey` (`RecoveryDriveKey`); `SaveRecoveryKey(path)` and `LoadRecoveryKey(path)`
+  write and read it in a file the caller chooses. `RecoveryDrive.Hash` is the hash's encoding (SHA-256 of the secret,
+  0x00, the station's name in upper case, 0x00, `created`), the same as the station's, the Web UI's and the Python
+  client's. `RecoveryDto` has `Station` (the name a drive must carry), `Created` and `Why`.
+
+### Changed
+
+- `Security.RecoveryResetAdminAsync` sends the secret of `RecoveryKey`, and throws `InvalidOperationException` without
+  one (nothing is sent). The station answers 403 when the drive in it was made by another client or browser.
+
+### Deprecated
+
+- `Security.DownloadRecoveryDriveFileAsync()`: the station no longer makes the drive's file. It now reads the station's
+  name and calls `MakeRecoveryDrive`.
+
 ## [7.5.0] – 2026-11-19
 
 ### Fixed

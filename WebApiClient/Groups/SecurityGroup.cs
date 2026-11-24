@@ -379,24 +379,64 @@ public sealed class SecurityGroup : ApiGroupBase
         => await GetOrNullAsync<RecoveryDto>("api/security/recovery", ct).ConfigureAwait(false);
 
     /// <summary>
-    /// The recovery drive's file, <c>accordion-recovery.json</c> (anyone, every mode): save it under that name in the top
-    /// folder of a FAT32 or exFAT USB drive and plug that into the station. It names the station and holds no secret.
+    /// The key of the recovery drive this client made (<see cref="MakeRecoveryDrive"/>) or loaded
+    /// (<see cref="LoadRecoveryKey"/>): <see cref="RecoveryResetAdminAsync"/> sends its secret. Null when none.
     /// </summary>
-    public Task<byte[]> DownloadRecoveryDriveFileAsync(CancellationToken ct = default)
-        => GetBytesAsync("api/security/recovery/drive-file", ct);
+    public RecoveryDriveKey? RecoveryKey { get; set; }
+
+    /// <summary>
+    /// Makes a recovery drive for <paramref name="station"/> (its host name, which is its serial number: <see
+    /// cref="RecoveryDto.Station"/> of <see cref="GetRecoveryAsync"/>), here, without the station: returns the bytes of
+    /// <c>accordion-recovery.json</c> (save them under that name in the top folder of a FAT32 or exFAT USB drive) and
+    /// keeps the drive's secret in <see cref="RecoveryKey"/> (save it with <see cref="SaveRecoveryKey"/> to reset from
+    /// another process). The file holds a hash, never the secret. A drive opens the station's recovery window until 24
+    /// hours after it was made (this computer's clock; at most an hour ahead of the station's).
+    /// </summary>
+    public byte[] MakeRecoveryDrive(string station, DateTimeOffset? now = null)
+    {
+        var (file, key) = RecoveryDrive.Make(station, now);
+        RecoveryKey = key;
+        return file;
+    }
+
+    /// <summary>Writes <see cref="RecoveryKey"/> to <paramref name="path"/>, which the caller chooses: it holds the drive's secret.</summary>
+    /// <exception cref="InvalidOperationException">This client has no recovery drive key.</exception>
+    public void SaveRecoveryKey(string path)
+        => (RecoveryKey ?? throw new InvalidOperationException("This client hasn't made a recovery drive (MakeRecoveryDrive)")).Save(path);
+
+    /// <summary>Reads a key <see cref="SaveRecoveryKey"/> wrote into <see cref="RecoveryKey"/>.</summary>
+    public RecoveryDriveKey LoadRecoveryKey(string path) => RecoveryKey = RecoveryDriveKey.Load(path);
+
+    /// <summary>
+    /// The recovery drive's file for this station (anyone, every mode): reads the station's name
+    /// (<see cref="GetRecoveryAsync"/>) and calls <see cref="MakeRecoveryDrive"/>. Firmware 7.1.0's final build makes no
+    /// drive file itself.
+    /// </summary>
+    [Obsolete("The station no longer makes the drive's file: use MakeRecoveryDrive(station), which keeps the drive's secret in RecoveryKey")]
+    public async Task<byte[]> DownloadRecoveryDriveFileAsync(CancellationToken ct = default)
+    {
+        var window = await GetRecoveryAsync(ct).ConfigureAwait(false);
+        if (window?.Station is not { Length: > 0 } station)
+            throw new InvalidOperationException("The station doesn't name itself for a recovery drive: it needs firmware 7.1.0 or later");
+        return MakeRecoveryDrive(station);
+    }
 
     /// <summary>
     /// Sets an admin's password while a recovery drive for this station is in it (anyone; over HTTPS or on the station),
-    /// sent without the client's key or token. <paramref name="user"/> null means <c>admin</c>; a missing user is made as
-    /// Admin, another role is made Admin, and that user's logins end; the mode, the keys and the other users stay. One
-    /// reset per insertion of the drive. 409 when no recovery drive is in the station, 400 for a password the station
-    /// refuses. The client doesn't log in: call <see cref="LoginAsync"/> with the new password.
+    /// sent without the client's key or token, with the secret of <see cref="RecoveryKey"/>: only the client that made
+    /// the drive can use it. <paramref name="user"/> null means <c>admin</c>; a missing user is made as Admin, another
+    /// role is made Admin, and that user's logins end; the mode, the keys and the other users stay. One reset per
+    /// insertion of the drive. 409 when no recovery drive is in the station, 403 when the drive was made elsewhere (it
+    /// counts like a wrong password), 400 for a password the station refuses. The client doesn't log in: call
+    /// <see cref="LoginAsync"/> with the new password.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host: the password isn't sent.</exception>
+    /// <exception cref="InvalidOperationException">The base address is plain HTTP to another host (nothing is sent), or there is no <see cref="RecoveryKey"/>.</exception>
     public async Task<RecoveryResetDto> RecoveryResetAdminAsync(string? user, string password, CancellationToken ct = default)
     {
         NeedSecureChannel("A password reset with the recovery drive");
-        return await SendJsonAsync<RecoveryResetDto>(HttpMethod.Post, "api/security/recovery/reset-admin", new { user, password }, Credentials.None,
-            passwordCheck: false, ct).ConfigureAwait(false);
+        var key = RecoveryKey ?? throw new InvalidOperationException(
+            "This client has no recovery drive key: make the drive with MakeRecoveryDrive, or load its key with LoadRecoveryKey");
+        return await SendJsonAsync<RecoveryResetDto>(HttpMethod.Post, "api/security/recovery/reset-admin", new { user, password, secret = key.Secret },
+            Credentials.None, passwordCheck: false, ct).ConfigureAwait(false);
     }
 }

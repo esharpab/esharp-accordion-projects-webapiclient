@@ -375,8 +375,12 @@ public sealed class FactoryResetRecordDto
 
 /// <summary>
 /// The recovery window (firmware 7.1.0, <c>GET /api/security/recovery</c>): <c>Window</c> is "open" while a recovery
-/// drive for the station is in it (at most 15 minutes, until the drive is taken out, one reset per insertion), else
-/// "closed"; <c>Until</c> null while closed; <c>UsbPortsOff</c> whether the drive needs a restart of the station.
+/// drive for the station is in it (until 24 hours after the drive was made, until the drive is taken out, one reset per
+/// insertion), else "closed"; <c>Until</c> null while closed; <c>UsbPortsOff</c> whether the drive needs a restart of
+/// the station; <c>Station</c> the station's name, for <see cref="SecurityGroup.MakeRecoveryDrive"/>; <c>Created</c>
+/// when the drive in the station was made; <c>Why</c> the window is closed (<c>None</c> while open, <c>NoDrive</c>,
+/// <c>Expired</c>, <c>DriveGone</c>, <c>Used</c>, <c>Invalid</c>, <c>Outdated</c>: made by an earlier firmware,
+/// <c>ClockBehind</c>).
 /// </summary>
 public sealed class RecoveryDto
 {
@@ -385,6 +389,9 @@ public sealed class RecoveryDto
     public bool UsbPortsOff { get; set; }
     public string Hint { get; set; } = string.Empty;
     public List<string> Steps { get; set; } = [];
+    public string? Station { get; set; }
+    public DateTimeOffset? Created { get; set; }
+    public string? Why { get; set; }
 
     /// <summary>Whether an admin password can be set now (<see cref="SecurityGroup.RecoveryResetAdminAsync"/>).</summary>
     public bool IsOpen => string.Equals(Window, "open", StringComparison.OrdinalIgnoreCase);

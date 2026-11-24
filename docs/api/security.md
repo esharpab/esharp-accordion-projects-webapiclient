@@ -107,19 +107,26 @@ In `On` the firewall drops connections that other hosts make to ports containers
 
 ## Recovery drive
 
-For a station whose admin password is lost, by someone at the station. No credential is needed: the protection is that a recovery drive has to be plugged into the station.
+For a station whose admin password is lost, by someone at the station. No credential is needed: the drive proves physical access, and the secret this client keeps proves that it made the drive. The client makes the drive, not the station:
 
 ```csharp
-byte[] file = await client.Security.DownloadRecoveryDriveFileAsync();   // accordion-recovery.json
-File.WriteAllBytes(@"E:ccordion-recovery.json", file);               // the top folder of a FAT32 or exFAT USB drive
+RecoveryDto? window = await client.Security.GetRecoveryAsync();          // null before 7.1.0
+byte[] file = client.Security.MakeRecoveryDrive(window!.Station!);        // the secret stays in client.Security.RecoveryKey
+File.WriteAllBytes(@"E:\accordion-recovery.json", file);                  // the top folder of a FAT32 or exFAT USB drive
+client.Security.SaveRecoveryKey(@"C:\keys\recovery-key.json");           // optional: to reset from another process
 // plug the drive into the station (restart the station with it in when its USB ports are off), then:
-RecoveryDto? window = await client.Security.GetRecoveryAsync();
+client.Security.LoadRecoveryKey(@"C:\keys\recovery-key.json");           // only in another process
+window = await client.Security.GetRecoveryAsync();
 if (window?.IsOpen == true)
     await client.Security.RecoveryResetAdminAsync("admin", newPassword);
 await client.Security.LoginAsync("admin", newPassword);
 ```
 
-`GetRecoveryAsync()` says whether the recovery window is open (a recovery drive for this station is in it), until when, and whether the station's USB ports are off (`UsbPortsOff`: the drive then needs a restart of the station); null before 7.1.0. `RecoveryResetAdminAsync(user, password)` sets that user's password (`null` means `admin`; made as Admin if missing, made Admin if not) and ends their logins; the mode, the keys and the other users stay. One reset per insertion of the drive; the window also closes when the drive is taken out and after 15 minutes. 409 when no recovery drive is in the station, 400 for a password the station refuses. Like a login, it needs HTTPS or the station itself.
+`GetRecoveryAsync()` says whether the recovery window is open (a recovery drive for this station is in it), until when, whether the station's USB ports are off (`UsbPortsOff`: the drive then needs a restart of the station), the station's name (`Station`, which the drive must carry), when the drive in the station was made (`Created`) and why the window is closed (`Why`, such as `Outdated` for a drive made by an earlier firmware build, `Expired` after 24 hours); null before 7.1.0.
+
+`MakeRecoveryDrive(station)` draws a random 32-byte secret, keeps it in `RecoveryKey` and returns `accordion-recovery.json`: `kind`, `station`, `created` (this computer's clock, UTC) and `hash`, the lower-case hex SHA-256 of the secret's bytes, a 0x00 byte, the station's name in upper case, a 0x00 byte and `created` (`RecoveryDrive.Hash`). The file never holds the secret. `SaveRecoveryKey(path)` and `LoadRecoveryKey(path)` write and read the key (JSON with the secret: keep it where only you can read it). A drive opens the recovery window until 24 hours after `created`, on the station's clock (`created` may be up to an hour ahead of it).
+
+`RecoveryResetAdminAsync(user, password)` sends the key's secret and sets that user's password (`null` means `admin`; made as Admin if missing, made Admin if not) and ends their logins; the mode, the keys and the other users stay. One reset per insertion of the drive; the window also closes when the drive is taken out. Without a `RecoveryKey` it throws `InvalidOperationException` and sends nothing. 409 when no recovery drive is in the station, 403 when the drive was made by another client or browser (counted like a wrong password; 429 after several), 400 for a password the station refuses. Like a login, it needs HTTPS or the station itself. `DownloadRecoveryDriveFileAsync()` is obsolete: it reads the station's name and calls `MakeRecoveryDrive`.
 
 ## Factory reset
 

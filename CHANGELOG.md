@@ -5,30 +5,10 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
-## [Unreleased]
+## [7.5.0] – unreleased
 
-### Added
-
-- The recovery drive is made by the client (firmware 7.1.0's final build): `Security.MakeRecoveryDrive(station)` returns
-  the bytes of `accordion-recovery.json` (`kind`, `station`, `created`, `hash`; never the secret) and keeps the drive's
-  random secret in `Security.RecoveryKey` (`RecoveryDriveKey`); `SaveRecoveryKey(path)` and `LoadRecoveryKey(path)`
-  write and read it in a file the caller chooses. `RecoveryDrive.Hash` is the hash's encoding (SHA-256 of the secret,
-  0x00, the station's name in upper case, 0x00, `created`), the same as the station's, the Web UI's and the Python
-  client's. `RecoveryDto` has `Station` (the name a drive must carry), `Created`, `Why` and `Now` (the station's clock, for
-  `MakeRecoveryDrive(station, now)` when the station's clock is more than an hour ahead of this computer's). On Linux and macOS
-  `SaveRecoveryKey` makes the key file readable by its owner only (0600).
-
-### Changed
-
-- `Security.RecoveryResetAdminAsync` sends the secret of `RecoveryKey`, and throws `InvalidOperationException` without
-  one (nothing is sent). The station answers 403 when the drive in it was made by another client or browser.
-
-### Deprecated
-
-- `Security.DownloadRecoveryDriveFileAsync()`: the station no longer makes the drive's file. It now reads the station's
-  name and calls `MakeRecoveryDrive`.
-
-## [7.5.0] – 2026-11-19
+The first release after 7.1.0: 7.2.0, 7.3.0 and 7.4.0 were never published, and their changes (below) are part of
+7.5.0. Coming from 7.1.0, read those three entries too.
 
 ### Fixed
 
@@ -109,6 +89,24 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   `Sbom`. New calls on `Firmware`: `SetAutoUpdateAsync(mode, window)`, `CheckAutoUpdateAsync()`,
   `InstallOsUpdatesAsync(force)` (`OsUpdateRecordDto`), `GetOsUpdatesLogAsync()` and `GetSbomAsync()` (the CycloneDX 1.6
   JSON as a string).
+- The recovery drive is made by the client (firmware 7.1.0's final build): `Security.MakeRecoveryDrive(station)` returns
+  the bytes of `accordion-recovery.json` (`kind`, `station`, `created`, `hash`; never the secret) and keeps the drive's
+  random secret in `Security.RecoveryKey` (`RecoveryDriveKey`); `SaveRecoveryKey(path)` and `LoadRecoveryKey(path)`
+  write and read it in a file the caller chooses. `RecoveryDrive.Hash` is the hash's encoding (SHA-256 of the secret,
+  0x00, the station's name in upper case, 0x00, `created`), the same as the station's, the Web UI's and the Python
+  client's. `RecoveryDto` has `Station` (the name a drive must carry), `Created`, `Why` and `Now` (the station's clock, for
+  `MakeRecoveryDrive(station, now)` when the station's clock is more than an hour ahead of this computer's). On Linux and macOS
+  `SaveRecoveryKey` makes the key file readable by its owner only (0600).
+
+### Changed
+
+- `Security.RecoveryResetAdminAsync` sends the secret of `RecoveryKey`, and throws `InvalidOperationException` without
+  one (nothing is sent). The station answers 403 when the drive in it was made by another client or browser.
+
+### Deprecated
+
+- `Security.DownloadRecoveryDriveFileAsync()`: the station no longer makes the drive's file. It now reads the station's
+  name and calls `MakeRecoveryDrive`.
 
 ### Compatibility
 
@@ -130,7 +128,10 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
-## [7.4.0] – 2026-11-08
+## [7.4.0] – never published
+
+> Prepared 2026-11-08 but never published (no tag, not on the package index): its changes are part of 7.5.0,
+> the first release after 7.1.0.
 
 ### Added
 
@@ -151,7 +152,10 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
-## [7.3.0] – 2026-11-08
+## [7.3.0] – never published
+
+> Prepared 2026-11-08 but never published (no tag, not on the package index): its changes are part of 7.5.0,
+> the first release after 7.1.0.
 
 ### Added
 
@@ -185,7 +189,10 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
 
 ---
 
-## [7.2.0] – 2026-11-07
+## [7.2.0] – never published
+
+> Prepared 2026-11-07 but never published (no tag, not on the package index): its changes are part of 7.5.0,
+> the first release after 7.1.0.
 
 ### Added
 

@@ -379,8 +379,7 @@ public sealed class FactoryResetRecordDto
 /// insertion), else "closed"; <c>Until</c> null while closed; <c>UsbPortsOff</c> whether the drive needs a restart of
 /// the station; <c>Station</c> the station's name, for <see cref="SecurityGroup.MakeRecoveryDrive"/>; <c>Created</c>
 /// when the drive in the station was made; <c>Why</c> the window is closed (<c>None</c> while open, <c>NoDrive</c>,
-/// <c>Expired</c>, <c>DriveGone</c>, <c>Used</c>, <c>Invalid</c>, <c>Outdated</c>: made by an earlier firmware,
-/// <c>ClockBehind</c>).
+/// <c>Expired</c>, <c>DriveGone</c>, <c>Used</c>, <c>Invalid</c>, <c>Outdated</c>: made by an earlier firmware).
 /// </summary>
 public sealed class RecoveryDto
 {
@@ -394,9 +393,9 @@ public sealed class RecoveryDto
     public string? Why { get; set; }
 
     /// <summary>
-    /// The station's clock (UTC) when it answered (firmware 7.1.0): a drive's time is judged by it. When this computer's
-    /// clock differs from it by more than an hour, pass it to <see cref="SecurityGroup.MakeRecoveryDrive"/> as
-    /// <c>now</c>.
+    /// The station's clock (UTC) when it answered (firmware 7.1.0): a drive's time is judged by it (a time ahead of it is
+    /// accepted). When it is more than an hour ahead of this computer's clock, pass it to
+    /// <see cref="SecurityGroup.MakeRecoveryDrive"/> as <c>now</c>.
     /// </summary>
     public DateTimeOffset? Now { get; set; }
 

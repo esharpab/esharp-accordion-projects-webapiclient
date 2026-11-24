@@ -15,7 +15,7 @@ All notable changes to AccordionQ2.WebApiClient. Format follows
   write and read it in a file the caller chooses. `RecoveryDrive.Hash` is the hash's encoding (SHA-256 of the secret,
   0x00, the station's name in upper case, 0x00, `created`), the same as the station's, the Web UI's and the Python
   client's. `RecoveryDto` has `Station` (the name a drive must carry), `Created`, `Why` and `Now` (the station's clock, for
-  `MakeRecoveryDrive(station, now)` when this computer's clock is off by more than an hour). On Linux and macOS
+  `MakeRecoveryDrive(station, now)` when the station's clock is more than an hour ahead of this computer's). On Linux and macOS
   `SaveRecoveryKey` makes the key file readable by its owner only (0600).
 
 ### Changed

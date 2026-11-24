@@ -390,7 +390,7 @@ public sealed class SecurityGroup : ApiGroupBase
     /// <c>accordion-recovery.json</c> (save them under that name in the top folder of a FAT32 or exFAT USB drive) and
     /// keeps the drive's secret in <see cref="RecoveryKey"/> (save it with <see cref="SaveRecoveryKey"/> to reset from
     /// another process). The file holds a hash, never the secret. A drive opens the station's recovery window until 24
-    /// hours after it was made (this computer's clock; at most an hour ahead of the station's).
+    /// hours after it was made, on the station's clock (this computer's time may be ahead of the station's by any amount).
     /// </summary>
     public byte[] MakeRecoveryDrive(string station, DateTimeOffset? now = null)
     {

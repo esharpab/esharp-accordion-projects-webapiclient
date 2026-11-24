@@ -113,7 +113,7 @@ public class RecoveryDriveTests
     public void The_recovery_answer_carries_the_stations_clock_for_a_drive_made_at_its_time()
     {
         var dto = Newtonsoft.Json.JsonConvert.DeserializeObject<AccordionQ2.WebApiClient.Models.RecoveryDto>(
-            "{\"window\":\"closed\",\"station\":\"A002531\",\"why\":\"ClockBehind\",\"now\":\"2026-11-21T08:00:00+00:00\"}")!;
+            "{\"window\":\"closed\",\"station\":\"A002531\",\"why\":\"Expired\",\"now\":\"2026-11-21T08:00:00+00:00\"}")!;
         Assert.AreEqual(new DateTimeOffset(2026, 11, 21, 8, 0, 0, TimeSpan.Zero), dto.Now);
         var (file, key) = RecoveryDrive.Make(dto.Station!, dto.Now);
         Assert.AreEqual("2026-11-21T08:00:00Z", key.Created);

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
@@ -133,9 +134,38 @@ public sealed class RecoveryDriveKey
         return new RecoveryDriveKey((string)o["station"]!, (string)o["created"]!, secret.ToLowerInvariant());
     }
 
-    /// <summary>Writes the key to <paramref name="path"/> (the caller chooses where; it holds the secret).</summary>
-    public void Save(string path) => File.WriteAllText(path, ToJson() + "\n", new UTF8Encoding(false));
+    /// <summary>
+    /// Writes the key to <paramref name="path"/> (the caller chooses where; it holds the secret). On Linux and macOS the
+    /// file is made readable by its owner only (0600) before the secret goes in, also when it was there already; on
+    /// Windows it gets the folder's permissions, so choose a folder only you can read (your profile, not a shared one).
+    /// </summary>
+    /// <exception cref="IOException">The file couldn't be made owner-only: the secret wasn't written.</exception>
+    public void Save(string path)
+    {
+        if (path is null) throw new ArgumentNullException(nameof(path));
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // An empty file first, owner-only, then the secret: File.WriteAllText truncates it and keeps its mode
+            using (new FileStream(path, FileMode.Create, FileAccess.Write)) { }
+            if (OwnerOnly.Chmod(path, OwnerOnly.UserReadWrite) != 0)
+                throw new IOException($"Couldn't make {path} readable by its owner only (error {Marshal.GetLastWin32Error()}): the recovery drive key wasn't written");
+        }
+        File.WriteAllText(path, ToJson() + "\n", new UTF8Encoding(false));
+    }
 
     /// <summary>Reads a key <see cref="Save"/> wrote.</summary>
     public static RecoveryDriveKey Load(string path) => FromJson(File.ReadAllText(path));
+}
+
+/// <summary>chmod(2) on Linux and macOS (netstandard2.0 has no File.SetUnixFileMode).</summary>
+internal static class OwnerOnly
+{
+    /// <summary>S_IRUSR | S_IWUSR: 0600.</summary>
+    public const uint UserReadWrite = 0x180;
+
+    [DllImport("libc", EntryPoint = "chmod", SetLastError = true, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+    private static extern int ChmodLibc(string path, uint mode);
+
+    /// <summary>0 when done, else -1 (the error in Marshal.GetLastWin32Error).</summary>
+    public static int Chmod(string path, uint mode) => ChmodLibc(path, mode);
 }

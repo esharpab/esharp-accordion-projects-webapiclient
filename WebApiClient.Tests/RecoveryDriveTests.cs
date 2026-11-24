@@ -86,4 +86,37 @@ public class RecoveryDriveTests
             File.Delete(path);
         }
     }
+
+    [TestMethod]
+    public void The_key_file_is_readable_by_its_owner_only_on_linux_and_macos()
+    {
+        if (OperatingSystem.IsWindows())
+            Assert.Inconclusive("Windows: the key file gets its folder's permissions");
+        var path = Path.Combine(Path.GetTempPath(), $"recovery-key-{Guid.NewGuid():N}.json");
+        try
+        {
+            // Also a file that was there already, readable by everyone
+            File.WriteAllText(path, "old");
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+            var (_, key) = RecoveryDrive.Make("A002531");
+            key.Save(path);
+            Assert.AreEqual(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+            Assert.AreEqual(key.Secret, RecoveryDriveKey.Load(path).Secret);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void The_recovery_answer_carries_the_stations_clock_for_a_drive_made_at_its_time()
+    {
+        var dto = Newtonsoft.Json.JsonConvert.DeserializeObject<AccordionQ2.WebApiClient.Models.RecoveryDto>(
+            "{\"window\":\"closed\",\"station\":\"A002531\",\"why\":\"ClockBehind\",\"now\":\"2026-11-21T08:00:00+00:00\"}")!;
+        Assert.AreEqual(new DateTimeOffset(2026, 11, 21, 8, 0, 0, TimeSpan.Zero), dto.Now);
+        var (file, key) = RecoveryDrive.Make(dto.Station!, dto.Now);
+        Assert.AreEqual("2026-11-21T08:00:00Z", key.Created);
+        Assert.AreEqual("2026-11-21T08:00:00Z", (string?)Parse(System.Text.Encoding.UTF8.GetString(file))["created"]);
+    }
 }

@@ -393,6 +393,13 @@ public sealed class RecoveryDto
     public DateTimeOffset? Created { get; set; }
     public string? Why { get; set; }
 
+    /// <summary>
+    /// The station's clock (UTC) when it answered (firmware 7.1.0): a drive's time is judged by it. When this computer's
+    /// clock differs from it by more than an hour, pass it to <see cref="SecurityGroup.MakeRecoveryDrive"/> as
+    /// <c>now</c>.
+    /// </summary>
+    public DateTimeOffset? Now { get; set; }
+
     /// <summary>Whether an admin password can be set now (<see cref="SecurityGroup.RecoveryResetAdminAsync"/>).</summary>
     public bool IsOpen => string.Equals(Window, "open", StringComparison.OrdinalIgnoreCase);
 }
